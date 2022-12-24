@@ -23,9 +23,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Quelle.h">
-      <Filter>Headerdateien</Filter>
-    </ClInclude>
     <ClInclude Include="EngineFuncs.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>

@@ -9,6 +9,12 @@
 #pragma warning(disable:4996)
 
 
+typedef struct {
+	int x;
+	int y;
+} Point;
+
+
 
 typedef struct {
 	char name;
@@ -49,7 +55,7 @@ typedef struct {
 
 
 
-}Game;
+} Game;
 
 
 
@@ -63,7 +69,9 @@ int PIECE_getChessPieceValue(char piece);
 void BOARD_Print(Colors colors, Game* sys);
 void BOARD_MoveCursorLocal(int dx, int dy, Game* sys);
 
-
+void CELL_PrintPreview(Game* sys);
+void CELL_ClearPreview(Game* sys);
+void CELL_AddToPreview(int x, int y, Game* sys);
 
 
 
