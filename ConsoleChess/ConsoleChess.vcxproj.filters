@@ -18,5 +18,16 @@
     <ClCompile Include="Quelle.c">
       <Filter>Quelldateien</Filter>
     </ClCompile>
+    <ClCompile Include="EngineFuncs.c">
+      <Filter>Quelldateien</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Quelle.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
+    <ClInclude Include="EngineFuncs.h">
+      <Filter>Headerdateien</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

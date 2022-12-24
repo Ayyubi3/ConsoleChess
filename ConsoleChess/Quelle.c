@@ -2,14 +2,14 @@
 #include <conio.h>
 #include <string.h>
 
+#include "EngineFuncs.h"
+
+
 #define _CRT_SECURE_NO_WARNINGS
 #pragma warning(disable:4996)
 
 
 
-
-
-enum Pieces { KING, ROOK, BISHOP, QUEEN, KNIGHT, PAWN };
 typedef struct {
 	char name;
 	int possibleMoves[50];
@@ -25,7 +25,7 @@ typedef struct {
 
 	int DPieceColorR, DPieceColorG, DPieceColorB;
 	int LPieceColorR, LPieceColorG, LPieceColorB;
-	int FrameColorR, FrameColorG, FrameColorB;
+
 
 }Colors;
 
@@ -36,7 +36,9 @@ typedef struct {
 	Piece Board[64];
 
 	int CursorX, CursorY;
-	int BoardX, BoardY;
+
+
+	int LocalIndex;
 
 	int isWhiteTurn;
 	int ScopeX, ScopeY;
@@ -51,278 +53,33 @@ typedef struct {
 
 
 
+int BOARD_ReadFEN(char* FEN, Game* sys);
+
+void PIECE_getChessPieceMoves(char piece, int* buffer);
+int PIECE_getRecursivness(char piece);
+int PIECE_getChessPieceValue(char piece);
+
+
+void BOARD_Print(Colors colors, Game* sys);
+void BOARD_MoveCursorLocal(int dx, int dy, Game* sys);
+
+
+
+
+
+
+
+
+
+
 void oneDimToTwoDim(int index, int* x, int* y)
 {
-	*x = (int)(index % 8);
-	*y = (int)(index / 8);
+	*x = (int)(index % 8) + 1;
+	*y = (int)(index / 8) + 1;
 
 }
 
-
-
-
-void getChessPieceMoves(char piece, int* buffer)
-{
-
-	int moves[50];
-	for (size_t i = 0; i < 50; i++)
-	{
-		moves[i] = 0;
-	}
-	(('a' <= piece) && (piece <= 'z')) ? piece -= ('a' - 'A') : (piece = piece);
-
-	switch (piece)
-	{
-	case 'R':
-		moves[0] = 1;
-		moves[1] = -1;
-		moves[2] = 8;
-		moves[3] = -8;
-		break;
-	case 'B':
-		moves[0] = 7;
-		moves[1] = -7;
-		moves[2] = 9;
-		moves[3] = -9;
-		break;
-	case 'Q':
-		moves[0] = 7;
-		moves[1] = -7;
-		moves[2] = 9;
-		moves[3] = -9;
-		moves[0] = 1;
-		moves[1] = -1;
-		moves[2] = 8;
-		moves[3] = -8;
-		break;
-	case 'K':
-		moves[0] = 7;
-		moves[1] = -7;
-		moves[2] = 9;
-		moves[3] = -9;
-		moves[0] = 1;
-		moves[1] = -1;
-		moves[2] = 8;
-		moves[3] = -8;
-		break;
-	case 'P':
-		moves[0] = 16;
-		moves[1] = 8;
-		break;
-	case 'N':
-
-		moves[0] = -15;
-		moves[1] = -17;
-		moves[2] = -10;
-		moves[3] = 6;
-		moves[0] = 15;
-		moves[1] = 17;
-		moves[2] = -6;
-		moves[3] = 10;
-
-		break;
-	default:
-		break;
-	}
-	memcpy(buffer, moves, sizeof(int) * 50);
-}
-
-int getRecursiveness(char piece)
-{
-	(('a' <= piece) && (piece <= 'z')) ? piece -= ('a' - 'A') : (piece = piece);
-
-	switch (piece)
-	{
-	case 'P':
-		return 0;
-		break;
-
-	case 'N':
-		return 0;
-		break;
-
-	case 'B':
-		return 1;
-		break;
-
-	case 'R':
-		return 1;
-		break;
-
-
-	case 'Q':
-		return 1;
-		break;
-
-	case 'K':
-		return 0;
-		break;
-	default:
-		break;
-	}
-}
-
-
-int getChessPieceValue(char piece)
-{
-	(('a' <= piece) && (piece <= 'z')) ? piece -= ('a' - 'A') : (piece = piece);
-
-	switch (piece)
-	{
-	case 'P':
-		return 1;
-		break;
-
-	case 'N':
-		return 3;
-		break;
-
-	case 'B':
-		return 3;
-		break;
-
-	case 'R':
-		return 5;
-		break;
-
-
-	case 'Q':
-		return 9;
-		break;
-	default:
-		break;
-	}
-}
-
-void MoveInBoard(int dx, int dy, Game* sys)
-{
-
-	if (dx == -1 && sys->BoardX > 0)//left
-	{
-		sys->CursorX--;
-		sys->BoardX--;
-	}
-	else if (dx == 1 && sys->BoardX < 7)//right
-	{
-		sys->CursorX++;
-		sys->BoardX++;
-	}
-	else if (dy == 1 && sys->BoardY > 0)//up
-	{
-		sys->CursorY--;
-		sys->BoardY--;
-	}
-	else if (dy == -1 && sys->BoardY < 7)//down
-	{
-		sys->CursorY++;
-		sys->BoardY++;
-	}
-
-}
-
-
-
-
-
-void printboard(Colors colors, Game* sys)
-{
-	//TODO: Erweiterte Fenstreing einlesen (wer dran ist und so)
-	printf("\x1b[48;2;%i;%i;%im", colors.FrameColorR, colors.FrameColorG, colors.FrameColorB);
-
-	printf("XABCDEFGH\n");
-
-	printf("\x1b[48;2;%i;%i;%im", 0, 0, 0);
-
-
-	for (size_t i = 0; i < 8; i++)
-	{
-		for (size_t j = 0; j < 9; j++)
-		{
-			if (j == 0)
-			{
-				printf("\x1b[48;2;%i;%i;%im", colors.FrameColorR, colors.FrameColorG, colors.FrameColorB);
-
-				printf("%c", i + '1');//Die Zahl links
-				printf("\x1b[48;2;%i;%i;%im", 0, 0, 0);
-
-
-			}
-			else {
-
-				int index = 8 * i + (j - 1);
-				//Raster einfärben
-				//Die erste Klammer rechnet den Index aus(die minus 1 bei j isi weil die Schleife bis 9 geht(wegen der zahl jede Reihe))
-				//Der + Moduo teil ist verscheibt das Raster um eins jede Reihe;
-				((8 * i + (j - 1)) + (i % 2)) % 2 == 0 ?
-					printf("\x1b[48;2;%i;%i;%im", colors.DBoxColorR, colors.DBoxColorB, colors.DBoxColorB) :
-					printf("\x1b[48;2;%i;%i;%im", colors.LBoxColorR, colors.LBoxColorB, colors.LBoxColorB);
-
-				//Spieler einfärben
-				('a' <= sys->Board[index].name && sys->Board[index].name <= 'z') ?
-					printf("\x1b[38;2;%i;%i;%im", colors.DPieceColorR, colors.DPieceColorB, colors.DPieceColorB) :
-					printf("\x1b[38;2;%i;%i;%im", colors.LPieceColorR, colors.LPieceColorB, colors.LPieceColorB);
-
-
-
-				printf("%c", sys->Board[index].name);
-
-				printf("\x1b[48;2;0;0;0m");
-				printf("\x1b[38;2;255;255;255m");
-
-
-			}
-		}
-
-		printf("\n");
-
-	}
-
-
-
-
-}
-
-void addCellToColor(int x, int y, Game* sys)
-{
-	sys->markedPosX[sys->MarkedCellsCounter] = x;
-
-	sys->markedPosY[sys->MarkedCellsCounter++] = y;
-
-}
-
-
-void clearMarkedCells(Game* sys)
-{
-	for (size_t i = 0; i < 64; i++)
-	{
-		sys->markedPosX[i] = 0;
-		sys->markedPosY[i] = 0;
-	}
-}
-
-void displayMarkedCells(Game* sys)
-{
-	for (size_t i = 0; i < 64; i++)
-	{
-		if (sys->markedPosX[i] == 0|| sys->markedPosY[i] == 0)
-			return;
-		
-
-
-		printf("\033[%d;%dH", sys->markedPosY[i] +2, sys->markedPosX[i] + 2);
-
-		printf("\x1b[48;2;%i;%i;%im", 233, 233, 233);
-		printf("%c", sys->Board[sys->BoardY * 8 + sys->BoardX].name);
-
-		printf("\x1b[48;2;0;0;0m");
-
-		printf("\033[%d;%dH", sys->CursorY, sys->CursorX);
-
-	}
-}
-
-
-int ReadFenStringToBoard(char* FEN, Game* sys)
+int BOARD_ReadFEN(char* FEN, Game* sys)
 {
 
 
@@ -335,12 +92,12 @@ int ReadFenStringToBoard(char* FEN, Game* sys)
 		{
 			sys->Board[index] = (Piece){
 				.name = FEN[i],
-				.value = getChessPieceValue(FEN[i]),
-				.isRecursive = getRecursiveness(FEN[i]),
-				.hasMoved = 0 
+				.value = PIECE_getRecursivness(FEN[i]),
+				.isRecursive = PIECE_getRecursivness(FEN[i]),
+				.hasMoved = 0
 			};
 
-			getChessPieceMoves(FEN[i], &sys->Board[index].possibleMoves);
+			PIECE_getChessPieceMoves(FEN[i], &sys->Board[index].possibleMoves);
 			index++;
 		}
 
@@ -352,6 +109,247 @@ int ReadFenStringToBoard(char* FEN, Game* sys)
 }
 
 
+
+
+//************************************************************************************************
+//PIECE
+
+void PIECE_getChessPieceMoves(char piece, int* buffer)
+{
+
+	int moves[50];
+	for (size_t i = 0; i < 50; i++)
+	{
+		moves[i] = 0;
+	}
+
+	(('a' <= piece) && (piece <= 'z')) ? piece -= ('a' - 'A') : (piece = piece);
+
+	switch (piece)
+	{
+	case 'R':
+		moves[0] = 1;
+		moves[1] = -1;
+		moves[2] = 8;
+		moves[3] = -8;
+		break;
+	case 'B':
+		moves[0] = 7;
+		moves[1] = -7;
+		moves[2] = 9;
+		moves[3] = -9;
+		break;
+	case 'Q':
+		moves[0] = 7;
+		moves[1] = -7;
+		moves[2] = 9;
+		moves[3] = -9;
+		moves[4] = 1;
+		moves[5] = -1;
+		moves[6] = 8;
+		moves[7] = -8;
+		break;
+	case 'K':
+		moves[0] = 7;
+		moves[1] = -7;
+		moves[2] = 9;
+		moves[3] = -9;
+		moves[4] = 1;
+		moves[5] = -1;
+		moves[6] = 8;
+		moves[7] = -8;
+		break;
+	case 'P':
+		moves[0] = -16;
+		moves[1] = -8;
+		break;
+	case 'N':
+
+		moves[0] = -15;
+		moves[1] = -17;
+		moves[2] = -10;
+		moves[3] = 6;
+		moves[4] = 15;
+		moves[5] = 17;
+		moves[6] = -6;
+		moves[7] = 10;
+
+		break;
+	default:
+		break;
+	}
+	memcpy(buffer, moves, sizeof(int) * 50);
+}
+
+int PIECE_getRecursivness(char piece)
+{
+	(('a' <= piece) && (piece <= 'z')) ? piece -= ('a' - 'A') : (piece = piece);
+
+	switch (piece)
+	{
+	case 'P':
+		return 0;
+		break;
+
+	case 'N':
+		return 0;
+		break;
+
+	case 'B':
+		return 1;
+		break;
+
+	case 'R':
+		return 1;
+		break;
+
+
+	case 'Q':
+		return 1;
+		break;
+
+	case 'K':
+		return 0;
+		break;
+	default:
+		break;
+	}
+}
+
+
+int PIECE_getChessPieceValue(char piece)
+{
+	(('a' <= piece) && (piece <= 'z')) ? piece -= ('a' - 'A') : (piece = piece);//toupper
+
+	switch (piece)
+	{
+	case 'P':
+		return 1;
+		break;
+	case 'N':
+		return 3;
+		break;
+	case 'B':
+		return 3;
+		break;
+	case 'R':
+		return 5;
+		break;
+	case 'Q':
+		return 9;
+		break;
+	default:
+		break;
+	}
+}
+//*******************************************************************************************
+//BOARD
+
+void BOARD_MoveCursorLocal(int dx, int dy, Game* sys)
+{
+
+	if (dx == -1 && sys->CursorX > 1)//left
+	{ sys->CursorX--; }
+	else if (dx == 1 && sys->CursorX < 8)//right
+	{ sys->CursorX++; }
+	else if (dy == 1 && sys->CursorY > 1)//up
+	{ sys->CursorY--; }
+	else if (dy == -1 && sys->CursorY < 8)//down
+	{ sys->CursorY++; }
+
+}
+
+
+
+
+
+void BOARD_Print(Colors colors, Game* sys)
+{
+	//TODO: Erweiterte Fenstreing einlesen (wer dran ist und so)
+
+
+	ENGINE_SetBackgroundColor(0, 0, 0); 
+
+
+	for (size_t i = 0; i < 8; i++)
+	{
+		for (size_t j = 0; j < 8; j++)
+		{
+
+			int index = 8 * i + j;
+			//Draw Chess Pattern
+			//Modulo-part offsets every row by one
+			((8 * i + j) + (i % 2)) % 2 == 0 ?
+				ENGINE_SetBackgroundColor(colors.DBoxColorR, colors.DBoxColorB, colors.DBoxColorB) :
+				ENGINE_SetBackgroundColor(colors.LBoxColorR, colors.LBoxColorB, colors.LBoxColorB);
+
+			//Color Pieces
+			('a' <= sys->Board[index].name && sys->Board[index].name <= 'z') ?
+				ENGINE_SetForegroundColor(colors.DPieceColorR, colors.DPieceColorB, colors.DPieceColorB) :
+				ENGINE_SetForegroundColor(colors.LPieceColorR, colors.LPieceColorB, colors.LPieceColorB);
+
+
+
+			printf("%c", sys->Board[index].name);
+
+			ENGINE_SetForegroundColor(255, 255, 255);
+			ENGINE_SetBackgroundColor(0, 0, 0);
+
+		}
+
+		printf("\n");
+
+	}
+
+
+
+
+}
+
+
+void CELL_AddToPreview(int x, int y, Game* sys)
+{
+	sys->markedPosX[sys->MarkedCellsCounter] = x;
+
+	sys->markedPosY[sys->MarkedCellsCounter++] = y;
+
+}
+
+
+void CELL_ClearPreview(Game* sys)
+{
+	for (size_t i = 0; i < 64; i++)
+	{
+		sys->markedPosX[i] = -1;
+		sys->markedPosY[i] = -1;
+	}
+	sys->MarkedCellsCounter = 0;
+}
+
+void CELL_PrintPreview(Game* sys)
+{
+	for (size_t i = 0; i < 64; i++)
+	{
+		if (sys->markedPosX[i] == -1 || sys->markedPosY[i] == -1)
+			return;
+		
+
+
+		ENGINE_SetCursorPos(sys->markedPosX[i], sys->markedPosY[i]);
+
+		ENGINE_SetBackgroundColor(233, 233, 233);
+		printf("%c", sys->Board[sys->CursorY * 8 + sys->CursorX].name);
+		ENGINE_SetBackgroundColor(0, 0, 0);
+
+		ENGINE_SetCursorPos(sys->CursorX, sys->CursorY);
+
+	}
+}
+
+
+
+
+
 int main()
 {
 	//Configure Game Colors
@@ -361,17 +359,15 @@ int main()
 
 		.DPieceColorR = 0, .DPieceColorG = 0, .DPieceColorB = 0,
 		.LPieceColorR = 255, .LPieceColorG = 255, .LPieceColorB = 255,
-
-		.FrameColorR = 136, .FrameColorG = 119, .FrameColorB = 183
 	};
 
 	//Configure Game Settings
 	Game sys = {
 
-		//Pivot(most Top Left Cell)
-		.CursorX = 2, .CursorY = 2,
+		
+		.CursorX = 1,
+		.CursorY = 1,
 
-		.BoardX = 0, .BoardY = 0,
 
 		.isWhiteTurn = 1,
 
@@ -388,72 +384,80 @@ int main()
 		sys.markedPosY[i] = 0;
 	}
 
-	ReadFenStringToBoard("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR", &sys);
 
+	BOARD_ReadFEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR", &sys);
+
+	CELL_ClearPreview(&sys);
 
 
 
 	while (1)
 	{
+		int index = (sys.CursorX - 1) + (sys.CursorY - 1) * 8;
 
-		printboard(SysCol, &sys);
-		displayMarkedCells(&sys);
-
-		printf("\033[%d;%dH", sys.CursorY, sys.CursorX);
+		BOARD_Print(SysCol, &sys);
 
 
+		ENGINE_SetCursorPos(sys.CursorX, sys.CursorY);
 
+
+		CELL_PrintPreview(&sys);
 
 		char ctrl = getch();
 
 		switch (ctrl)
 		{
-		case 'w':
-			MoveInBoard(0, 1, &sys);
-			break;
-		case 'a':
-			MoveInBoard(-1, 0, &sys);
-			break;
-		case 's':
-			MoveInBoard(0, -1, &sys);
-			break;
-		case 'd':
-			MoveInBoard(1, 0, &sys);
-			break;
-		case '\r':
-			clearMarkedCells(&sys);
-			if (sys.Board[sys.BoardY * 8 + sys.BoardX].name != ' ' && sys.Board[sys.BoardY * 8 + sys.BoardX].name != '\0')
-			{
+			//Note: Cursor pos is "enforced" in the next iteration
+			case 'w':
+				BOARD_MoveCursorLocal(0, 1, &sys);
+				break;
+			case 'a':
+				BOARD_MoveCursorLocal(-1, 0, &sys);
+				break;
+			case 's':
+				BOARD_MoveCursorLocal(0, -1, &sys);
+				break;
+			case 'd':
+				BOARD_MoveCursorLocal(1, 0, &sys);
+				break;
+			case '\r':
 
-				sys.ScopeX = sys.BoardX;
-				sys.ScopeY = sys.BoardY;
+				CELL_ClearPreview(&sys);
 
-				if (sys.Board[sys.BoardY * 8 + sys.BoardX].isRecursive == 0)
+				if (sys.Board[index].name == ' ')
+					break;
+				
+				for (size_t i = 0; i < 50; i++)
 				{
-					for (size_t i = 0; i < 50; i++)
+
+					if (sys.Board[index].isRecursive == 0)
 					{
+						if (sys.Board[index].possibleMoves[i] == 0)
+							break;
 
 						int x, y;
-					
-						int currentIndex = (sys.BoardY * 8 + sys.BoardX);
-						int move = sys.Board[sys.BoardY * 8 + sys.BoardX].possibleMoves[i];
+						int markedPos = sys.Board[index].possibleMoves[i] + index;
 
-						if (move == 0) continue;
+						if (markedPos < 0 || markedPos > 63)
+							continue;
 
-					oneDimToTwoDim(currentIndex - move, &x, &y);
-					addCellToColor(x, y, &sys);
+						oneDimToTwoDim(markedPos, &x, &y);
+
+						CELL_AddToPreview(x, y, &sys);
+					}
+					else if (sys.Board[index].isRecursive == 1)
+					{
 
 					}
-				}
 
-			}
-			break;
-		default:
-			break;
+				}
+				
+				break;
+			default:
+				break;
 		}
 
-
-		printf("\033[H\033[J");
+		printf("\033[H\033[J");//vllt optimieren anstatt console clearen einfach array überschreiben
 
 
 	}
