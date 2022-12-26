@@ -395,12 +395,12 @@ int main()
 
 						Point markedPos = {0, 0};
 
-
-
-						if (sys->isWhiteTurn)
-							markedPos = POINT_Add(sys->Board[index].possibleMoves[i], sys->Cursor);
-						else
-							markedPos = POINT_Add((Point) { -1 * (sys->Board[index].possibleMoves[i].x), -1 * sys->Board[index].possibleMoves[i].y }, sys->Cursor);
+						//If black turn negate possible moveS
+						int multi = sys->isWhiteTurn ? 1 : -1;
+							markedPos = POINT_Add((Point) { 
+								multi * (sys->Board[index].possibleMoves[i].x), 
+									multi * sys->Board[index].possibleMoves[i].y }, 
+								sys->Cursor);
 
 
 						if (markedPos.x < 1 || markedPos.x > 8 || markedPos.y < 1 || markedPos.y > 8)
