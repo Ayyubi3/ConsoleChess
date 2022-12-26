@@ -12,18 +12,18 @@ void ENGINE_SetForegroundColor(int R, int G, int B)
 	printf("\x1b[38;2;%i;%i;%im", R, G, B);
 }
 
-void ENGINE_SetCursorPos(int x, int y)
+void ENGINE_SetCursorPos(Point coords)
 {
-	printf("\033[%d;%dH", y, x);
+	printf("\033[%d;%dH", coords.y, coords.x);
 }
 
-void ENGINE_WriteCharToXy(int oldX, int oldY, int targetX, int targetY, char ch, int returnToOldPos)
+void ENGINE_WriteCharToXy(Point old, Point target, char ch, int returnToOldPos)
 {
-	ENGINE_SetCursorPos(targetX, targetY);
+	ENGINE_SetCursorPos(target);
 	printf("%c", ch);
-	ENGINE_SetCursorPos(targetX, targetY);
+	ENGINE_SetCursorPos(target);
 
-	returnToOldPos ? ENGINE_SetCursorPos(oldX, oldY) : ENGINE_SetCursorPos(targetX, targetY);
+	returnToOldPos ? ENGINE_SetCursorPos(old) : ENGINE_SetCursorPos(target);
 }
 
 

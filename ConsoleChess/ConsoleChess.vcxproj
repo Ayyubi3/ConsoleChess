@@ -141,9 +141,11 @@
   <ItemGroup>
     <ClCompile Include="EngineFuncs.c" />
     <ClCompile Include="Quelle.c" />
+    <ClCompile Include="structs.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="EngineFuncs.h" />
+    <ClInclude Include="structs.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
