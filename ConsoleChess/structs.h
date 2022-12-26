@@ -44,8 +44,11 @@ typedef struct {
 
 	int MarkedCellsCounter;
 
+	Point Scope;
+
 
 
 } Game;
 
 Point POINT_Add(Point point1, Point point2);
+int POINT_IsZero(Point point);

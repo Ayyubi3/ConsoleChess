@@ -2,6 +2,7 @@
 #include <conio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <ctype.h>
 
 #include "structs.h"
 
@@ -75,7 +76,7 @@ void PIECE_getChessPieceMoves(char piece, Point* buffer)
 		moves[i] = (Point){ 0, 0 };
 	}
 
-	(('a' <= piece) && (piece <= 'z')) ? piece -= ('a' - 'A') : (piece = piece);
+	piece = toupper(piece);
 
 	switch (piece)
 	{
@@ -134,7 +135,7 @@ void PIECE_getChessPieceMoves(char piece, Point* buffer)
 
 int PIECE_getRecursivness(char piece)
 {
-	(('a' <= piece) && (piece <= 'z')) ? piece -= ('a' - 'A') : (piece = piece);
+	piece = toupper(piece);
 
 	switch (piece)
 	{
@@ -170,7 +171,7 @@ int PIECE_getRecursivness(char piece)
 
 int PIECE_getChessPieceValue(char piece)
 {
-	(('a' <= piece) && (piece <= 'z')) ? piece -= ('a' - 'A') : (piece = piece);//toupper
+	piece = toupper(piece);
 
 	switch (piece)
 	{
@@ -193,6 +194,37 @@ int PIECE_getChessPieceValue(char piece)
 		break;
 	}
 }
+
+
+int PIECE_getAllAttackedCells()
+{
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 //*******************************************************************************************
 //BOARD
 
@@ -376,45 +408,61 @@ int main()
 			case 'd':
 				BOARD_MoveCursorLocal((Point) { 1, 0 }, sys);
 				break;
-			case '\r'://if enter just show every possible(Except knight and pawn everything is missing)
-
-				CELL_ClearPreview(sys);
-
-				if (sys->Board[index].name == ' ')
-					break;
-				
-				for (size_t i = 0; i < 50; i++) 
+			case '\r':
+				//if no piece is selected, select one
+				if (POINT_IsZero(sys->Scope))
 				{
+					sys->Scope = sys->Cursor;
+					CELL_ClearPreview(sys);
 
-					if (sys->Board[index].possibleMoves[i].x == 0 && sys->Board[index].possibleMoves[i].y == 0)
+					if (sys->Board[index].name == ' ')
 						break;
 
-
-					if (sys->Board[index].isRecursive == 0)
+					for (size_t i = 0; i < 50; i++)
 					{
 
-						Point markedPos = {0, 0};
+						if (sys->Board[index].possibleMoves[i].x == 0 && sys->Board[index].possibleMoves[i].y == 0)
+							break;
 
-						//If black turn negate possible moveS
-						int multi = sys->isWhiteTurn ? 1 : -1;
-							markedPos = POINT_Add((Point) { 
-								multi * (sys->Board[index].possibleMoves[i].x), 
-									multi * sys->Board[index].possibleMoves[i].y }, 
+						//Pawn/Knight
+						if (sys->Board[index].isRecursive == 0)
+						{
+
+							Point markedPos = { 0, 0 };
+
+							//If black turn negate possible moveS
+							int multi = sys->isWhiteTurn ? 1 : -1;
+							markedPos = POINT_Add((Point) {
+								multi* (sys->Board[index].possibleMoves[i].x),
+									multi* sys->Board[index].possibleMoves[i].y
+							},
 								sys->Cursor);
 
 
-						if (markedPos.x < 1 || markedPos.x > 8 || markedPos.y < 1 || markedPos.y > 8)
-							continue;
+							if (markedPos.x < 1 || markedPos.x > 8 || markedPos.y < 1 || markedPos.y > 8)
+								continue;
 
-						CELL_AddToPreview(markedPos, sys);
+							CELL_AddToPreview(markedPos, sys);
+
+						}
+						else if (sys->Board[index].isRecursive == 1)
+						{
+
+						}
 
 					}
-					else if (sys->Board[index].isRecursive == 1)
-					{
-
-					}
-
 				}
+				else
+				{
+					sys->Board[index] = sys->Board[(sys->Scope.x - 1) + (sys->Scope.y - 1) * 8];
+					sys->Board[(sys->Scope.x - 1) + (sys->Scope.y - 1) * 8] = (Piece){ ' ', .possibleMoves = 0, .value = 0 };
+
+					sys->Scope = (Point){ 0, 0 };
+					CELL_ClearPreview(sys);
+
+					sys->isWhiteTurn = !sys->isWhiteTurn;
+				}
+
 				
 				break;
 			default:
