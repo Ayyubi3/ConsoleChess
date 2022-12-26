@@ -33,7 +33,7 @@ void CELL_AddToPreview(Point coords, Game* sys);
 
 int BOARD_ReadFEN(char* FEN, Game* sys)
 {
-
+	//TODO: Process extended FEN string (The part after the long string with w-- etc)
 	int index = 0;
 	for (int i = 0; FEN[i] != '\0'; i++)
 	{
@@ -214,7 +214,7 @@ void BOARD_MoveCursorLocal(Point d, Game* sys)
 
 void BOARD_Print(Colors* colors, Game* sys)
 {
-	//TODO: Process extended FEN string (The part after the long string with w-- etc)
+
 
 
 	ENGINE_SetBackgroundColor(0, 0, 0); 
