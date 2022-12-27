@@ -198,8 +198,46 @@ int PIECE_getChessPieceValue(char piece)
 
 
 
-void PIECE_getAllLegalMoves(Piece piece)
+void PIECE_getAllLegalMoves(Game* sys, Point piece, Point* Moves)
 {
+	int index = (piece.x - 1) + (piece.y - 1) * 8;
+
+	Point ps[50];
+
+	for (size_t i = 0; i < 50; i++)
+	{
+
+		if (POINT_IsZero(sys->Board[index].possibleMoves[i])) ps[i] = (Point){ 0, 0 };
+
+		//Pawn/Knight
+		if (sys->Board[index].isRecursive == 0)
+		{
+
+			Point markedPos = { 0, 0 };
+
+			//If black turn negate possible moveS
+			int multi = sys->isWhiteTurn ? 1 : -1;
+			markedPos = POINT_Add((Point) {
+				multi* (sys->Board[index].possibleMoves[i].x),
+					multi* sys->Board[index].possibleMoves[i].y
+			},
+				sys->Cursor);
+
+
+			if (markedPos.x < 1 || markedPos.x > 8 || markedPos.y < 1 || markedPos.y > 8)
+				continue;
+
+			ps[i] = markedPos;
+
+		}
+		else if (sys->Board[index].isRecursive == 1)
+		{
+
+		}
+
+	}
+
+	memcpy(Moves, ps, sizeof(Point) * 50);
 
 }
 
@@ -416,38 +454,14 @@ int main()
 
 					CELL_AddToPreview(sys->Scope, sys);
 
+					Point mov[50];
+
+					PIECE_getAllLegalMoves(sys, sys->Scope, mov);
+
 					for (size_t i = 0; i < 50; i++)
-					{
-
-						if (POINT_IsZero(sys->Board[index].possibleMoves[i]))
-							break;
-
-						//Pawn/Knight
-						if (sys->Board[index].isRecursive == 0)
-						{
-
-							Point markedPos = { 0, 0 };
-
-							//If black turn negate possible moveS
-							int multi = sys->isWhiteTurn ? 1 : -1;
-							markedPos = POINT_Add((Point) {
-								multi* (sys->Board[index].possibleMoves[i].x),
-									multi* sys->Board[index].possibleMoves[i].y
-							},
-								sys->Cursor);
-
-
-							if (markedPos.x < 1 || markedPos.x > 8 || markedPos.y < 1 || markedPos.y > 8)
-								continue;
-
-							CELL_AddToPreview(markedPos, sys);
-
-						}
-						else if (sys->Board[index].isRecursive == 1)
-						{
-
-						}
-
+					{ 
+						if (POINT_IsZero(mov[i])) break;
+						CELL_AddToPreview(mov[i], sys); 
 					}
 
 
