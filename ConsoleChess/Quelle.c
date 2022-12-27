@@ -85,12 +85,12 @@ void PIECE_getChessPieceMoves(char piece, Point* buffer)
 		moves[2] = (Point){ 0, 1 };
 		moves[3] = (Point){ 0, -1 };
 		break;
-	//case 'B':
-	//	moves[0] = 7;
-	//	moves[1] = -7;
-	//	moves[2] = 9;
-	//	moves[3] = -9;
-	//	break;
+	case 'B':
+		moves[0] = (Point){1, 1};
+		moves[1] = (Point){-1, -1};
+		moves[2] = (Point){-1, 1};
+		moves[3] = (Point){1, -1};
+		break;
 	//case 'Q':
 	//	moves[0] = 7;
 	//	moves[1] = -7;
@@ -231,71 +231,44 @@ void PIECE_getAllLegalMoves(Game* sys, Point piece, Point* Moves)
 
 				ps[i] = markedPos;
 			}
-		}//rest
+		}
+		//Rook, Bishop, Queen
 		else if (sys->Board[index].isRecursive == 1)
 		{
 
-			
-
 			for (size_t i = 0; i < 50; i++)
 			{
+
+
 				//if (POINT_IsZero(sys->Board[index].possibleMoves[i])) 
 				//	ps[i + 1] = (Point){ 0, 0 };
 
 
 				int j = 1;
+
+
 				//if(Board[ index + possibleMove[i].x * j ].name
-				while (sys->Board[index + sys->Board[index].possibleMoves[i].x * j].name == ' ' &&
-					sys->Board[index].possibleMoves[i].x != 0)
+				while (
+					sys->Board[
+						index + ((j * sys->Board[index].possibleMoves[i].x) + (j * sys->Board[index].possibleMoves[i].y * 8))
+					].name == ' '
+				)
 				{
 
-					int y = (index + sys->Board[index].possibleMoves[i].x * j) / 8;
-					int x = (index + sys->Board[index].possibleMoves[i].x * j) % 8;
+					int y = (index + ((j * sys->Board[index].possibleMoves[i].x) + (j * sys->Board[index].possibleMoves[i].y * 8))) / 8;
+					int x = (index + ((j * sys->Board[index].possibleMoves[i].x) + (j * sys->Board[index].possibleMoves[i].y * 8))) % 8;
 
 					Point markedPos = { x + 1, y + 1};
 
 					ps[psCounter++] = markedPos;
-					j++;
 
 					if (markedPos.x == 1 || markedPos.x == 8)
 						break;
-
-
-				}
-
-				j = 1;
-				while (sys->Board[index + (sys->Board[index].possibleMoves[i].y * 8) * j].name == ' ' &&
-					sys->Board[index].possibleMoves[i].y != 0)
-				{
-
-					int y = (index + (sys->Board[index].possibleMoves[i].y * 8) * j) / 8;
-					int x = (index + (sys->Board[index].possibleMoves[i].y * 8) * j) % 8;
-
-					Point markedPos = { x + 1, y + 1 };
-
-					ps[psCounter++] = markedPos;
 					j++;
 
-					if (markedPos.x == 1 || markedPos.x == 8)
-						break;
 
 
 				}
-				//while (sys->Board[index + sys->Board[index].possibleMoves[i].y * 8 * j].name == ' ' && sys->Board[index].possibleMoves[i].y != 0)
-				//{
-				//	int x = ((index + sys->Board[index].possibleMoves[i].x * j) + 1) / 8;
-				//	int y = ((index + sys->Board[index].possibleMoves[i].x * j) + 1) % 8;
-
-				//	Point markedPos = { x + 1, y + 1 };
-
-
-				//	if (markedPos.x < 1 || markedPos.x > 8 || markedPos.y < 1 || markedPos.y > 8)
-				//		continue;
-
-
-				//	ps[psCounter++] = markedPos;
-				//	j++;
-				//}
 
 			}
 		}
@@ -473,7 +446,7 @@ int main()
 
 
 
-	BOARD_ReadFEN("3p48p2B87p", sys);
+	BOARD_ReadFEN("3p48p2R87p", sys);
 
 
 
