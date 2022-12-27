@@ -79,12 +79,12 @@ void PIECE_getChessPieceMoves(char piece, Point* buffer)
 
 	switch (piece)
 	{
-	//case 'R':
-	//	moves[0] = 1;
-	//	moves[1] = -1;
-	//	moves[2] = 8;
-	//	moves[3] = -8;
-	//	break;
+	case 'R':
+		moves[0] = (Point){ 1, 0 };
+		moves[1] = (Point){ -1, 0 };
+		moves[2] = (Point){ 0, 1 };
+		moves[3] = (Point){ 0, -1 };
+		break;
 	//case 'B':
 	//	moves[0] = 7;
 	//	moves[1] = -7;
@@ -204,38 +204,105 @@ void PIECE_getAllLegalMoves(Game* sys, Point piece, Point* Moves)
 
 	Point ps[50];
 
-	for (size_t i = 0; i < 50; i++)
-	{
+	int psCounter = 0;//Counter for Array
 
-		if (POINT_IsZero(sys->Board[index].possibleMoves[i])) ps[i] = (Point){ 0, 0 };
-
-		//Pawn/Knight
+		//Pawn/Knight/King
 		if (sys->Board[index].isRecursive == 0)
 		{
 
-			Point markedPos = { 0, 0 };
-
-			//If black turn negate possible moveS
-			int multi = sys->isWhiteTurn ? 1 : -1;
-			markedPos = POINT_Add((Point) {
-				multi* (sys->Board[index].possibleMoves[i].x),
-					multi* sys->Board[index].possibleMoves[i].y
-			},
-				sys->Cursor);
+			for (size_t i = 0; i < 50; i++)
+			{
 
 
-			if (markedPos.x < 1 || markedPos.x > 8 || markedPos.y < 1 || markedPos.y > 8)
-				continue;
 
-			ps[i] = markedPos;
+				Point markedPos = { 0, 0 };
 
-		}
+				//If black turn negate possible moveS
+				int multi = sys->isWhiteTurn ? 1 : -1;
+				markedPos = POINT_Add((Point) {
+					multi* (sys->Board[index].possibleMoves[i].x),
+						multi* sys->Board[index].possibleMoves[i].y
+				},
+					sys->Cursor);
+
+
+				if (markedPos.x < 1 || markedPos.x > 8 || markedPos.y < 1 || markedPos.y > 8)
+					continue;
+
+				ps[i] = markedPos;
+			}
+		}//rest
 		else if (sys->Board[index].isRecursive == 1)
 		{
 
-		}
+			
 
-	}
+			for (size_t i = 0; i < 50; i++)
+			{
+				//if (POINT_IsZero(sys->Board[index].possibleMoves[i])) 
+				//	ps[i + 1] = (Point){ 0, 0 };
+
+
+				int j = 1;
+				//if(Board[ index + possibleMove[i].x * j ].name
+				while (sys->Board[index + sys->Board[index].possibleMoves[i].x * j].name == ' ' &&
+					sys->Board[index].possibleMoves[i].x != 0)
+				{
+
+					int y = (index + sys->Board[index].possibleMoves[i].x * j) / 8;
+					int x = (index + sys->Board[index].possibleMoves[i].x * j) % 8;
+
+					Point markedPos = { x + 1, y + 1};
+
+					ps[psCounter++] = markedPos;
+					j++;
+
+					if (markedPos.x == 1 || markedPos.x == 8)
+						break;
+
+
+				}
+
+				j = 1;
+				while (sys->Board[index + (sys->Board[index].possibleMoves[i].y * 8) * j].name == ' ' &&
+					sys->Board[index].possibleMoves[i].y != 0)
+				{
+
+					int y = (index + (sys->Board[index].possibleMoves[i].y * 8) * j) / 8;
+					int x = (index + (sys->Board[index].possibleMoves[i].y * 8) * j) % 8;
+
+					Point markedPos = { x + 1, y + 1 };
+
+					ps[psCounter++] = markedPos;
+					j++;
+
+					if (markedPos.x == 1 || markedPos.x == 8)
+						break;
+
+
+				}
+				//while (sys->Board[index + sys->Board[index].possibleMoves[i].y * 8 * j].name == ' ' && sys->Board[index].possibleMoves[i].y != 0)
+				//{
+				//	int x = ((index + sys->Board[index].possibleMoves[i].x * j) + 1) / 8;
+				//	int y = ((index + sys->Board[index].possibleMoves[i].x * j) + 1) % 8;
+
+				//	Point markedPos = { x + 1, y + 1 };
+
+
+				//	if (markedPos.x < 1 || markedPos.x > 8 || markedPos.y < 1 || markedPos.y > 8)
+				//		continue;
+
+
+				//	ps[psCounter++] = markedPos;
+				//	j++;
+				//}
+
+			}
+		}
+		for (size_t i = psCounter; i < 50; i++)
+		{
+			ps[i] = (Point){ 0, 0 };
+		}
 
 	memcpy(Moves, ps, sizeof(Point) * 50);
 
@@ -406,7 +473,7 @@ int main()
 
 
 
-	BOARD_ReadFEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR", sys);
+	BOARD_ReadFEN("3p48p2B87p", sys);
 
 
 
@@ -439,7 +506,7 @@ int main()
 				break;
 			case '\r':
 				//if no piece is selected, select one
-				if (POINT_IsZero(sys->Scope))
+				if (POINT_IsZero(sys->Scope) && sys->Board[index].name != ' ')
 				{
 					
 					sys->Scope = sys->Cursor;
@@ -472,7 +539,7 @@ int main()
 					sys->Scope = (Point){ 0, 0 };
 					CELL_ClearPreview(sys);
 				} 
-				else//If Point is selected and not the same prior move piece
+				else if(!POINT_IsZero(sys->Scope) && !POINT_equals(sys->Scope, sys->Cursor))//If Point is selected and not the same prior move piece
 				{
 					sys->Board[index] = sys->Board[(sys->Scope.x - 1) + (sys->Scope.y - 1) * 8];
 					sys->Board[(sys->Scope.x - 1) + (sys->Scope.y - 1) * 8] = (Piece){ ' ', .possibleMoves = 0, .value = 0 };
