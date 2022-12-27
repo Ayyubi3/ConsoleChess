@@ -14,7 +14,7 @@ typedef struct {
 	Point possibleMoves[50];
 	int value;
 	int isRecursive;
-	int hasMoved;
+	int hasMoved;//Pawn can only move if it is on the starting cell and has to free cells in front of it
 } Piece;
 
 typedef struct {
@@ -32,7 +32,7 @@ typedef struct {
 typedef struct {
 
 
-	Piece Board[64];
+	Piece Board[64];//64-bit integer instead of Piece Array//Use char instead of int (one byte insted of 4)
 
 	Point Cursor;
 
@@ -52,3 +52,4 @@ typedef struct {
 
 Point POINT_Add(Point point1, Point point2);
 int POINT_IsZero(Point point);
+int POINT_equals(Point point1, Point point2);

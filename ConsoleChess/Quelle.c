@@ -8,7 +8,7 @@
 
 #include "EngineFuncs.h"
 
-
+//Dont know what this is, but prevents warnings to stop compilation
 #define _CRT_SECURE_NO_WARNINGS
 #pragma warning(disable:4996)
 
@@ -40,7 +40,6 @@ int BOARD_ReadFEN(char* FEN, Game* sys)
 	{
 		if ('A' <= FEN[i] && FEN[i] <= 'z')
 		{
-			//ERROR: Do i need use malloc here again, if yes how? 
 			sys->Board[index] =
 				(Piece)
 			{
@@ -102,16 +101,16 @@ void PIECE_getChessPieceMoves(char piece, Point* buffer)
 	//	moves[6] = 8;
 	//	moves[7] = -8;
 	//	break;
-	//case 'K':
-	//	moves[0] = 7;
-	//	moves[1] = -7;
-	//	moves[2] = 9;
-	//	moves[3] = -9;
-	//	moves[4] = 1;
-	//	moves[5] = -1;
-	//	moves[6] = 8;
-	//	moves[7] = -8;
-	//	break;
+	case 'K':
+		moves[0] = (Point){ 0, 1 };
+		moves[1] = (Point){ 1, 1 };
+		moves[2] = (Point){ 1, 0 };
+		moves[3] = (Point){ 1, -1 };
+		moves[4] = (Point){ 0, -1 };
+		moves[5] = (Point){ -1, -1 };
+		moves[6] = (Point){ -1, 0 };
+		moves[7] = (Point){ -1, 1 };
+		break;
 	case 'P':
 		moves[0] = (Point){0, -1};
 		moves[1] = (Point){0, -2};
@@ -169,6 +168,8 @@ int PIECE_getRecursivness(char piece)
 }
 
 
+
+
 int PIECE_getChessPieceValue(char piece)
 {
 	piece = toupper(piece);
@@ -196,22 +197,11 @@ int PIECE_getChessPieceValue(char piece)
 }
 
 
-int PIECE_getAllAttackedCells()
+
+void PIECE_getAllLegalMoves(Piece piece)
 {
 
 }
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -291,9 +281,9 @@ void BOARD_Print(Colors* colors, Game* sys)
 
 void CELL_AddToPreview(Point coords, Game* sys)
 {
-	int index = (coords.y - 1) * 8 + (coords.x - 1);
+	/*int index = (coords.y - 1) * 8 + (coords.x - 1);
 	if(sys->Board[index].name == ' ')
-		sys->markedPos[sys->MarkedCellsCounter++] = coords;
+	*/	sys->markedPos[sys->MarkedCellsCounter++] = coords;
 
 }
 
@@ -318,9 +308,9 @@ void CELL_PrintPreview(Game* sys)
 
 		ENGINE_SetCursorPos(sys->markedPos[i]);
 
-		ENGINE_SetBackgroundColor(233, 233, 233);
+		ENGINE_SetBackgroundColor(44, 44, 233);
 
-		int index = (sys->Cursor.y-1) * 8 + (sys->Cursor.x - 1);
+		int index = (sys->Scope.y-1) * 8 + (sys->Scope.x - 1);
 		printf("%c", sys->Board[index].name);
 		ENGINE_SetBackgroundColor(0, 0, 0);
 
@@ -374,6 +364,7 @@ int main()
 		sys->markedPos[i] = (Point){ .x = 0, .y = 0 };
 	}
 	CELL_ClearPreview(sys);
+	sys->Scope = (Point){ 0, 0 };
 
 
 
@@ -412,16 +403,23 @@ int main()
 				//if no piece is selected, select one
 				if (POINT_IsZero(sys->Scope))
 				{
+					
 					sys->Scope = sys->Cursor;
 					CELL_ClearPreview(sys);
+					
 
+
+
+					//If selected Cell has no Piece, break
 					if (sys->Board[index].name == ' ')
 						break;
+
+					CELL_AddToPreview(sys->Scope, sys);
 
 					for (size_t i = 0; i < 50; i++)
 					{
 
-						if (sys->Board[index].possibleMoves[i].x == 0 && sys->Board[index].possibleMoves[i].y == 0)
+						if (POINT_IsZero(sys->Board[index].possibleMoves[i]))
 							break;
 
 						//Pawn/Knight
@@ -451,8 +449,16 @@ int main()
 						}
 
 					}
+
+
 				}
-				else
+				//if its the same piece selected prior, unselect it
+				else if (POINT_equals(sys->Scope, sys->Cursor))
+				{
+					sys->Scope = (Point){ 0, 0 };
+					CELL_ClearPreview(sys);
+				} 
+				else//If Point is selected and not the same prior move piece
 				{
 					sys->Board[index] = sys->Board[(sys->Scope.x - 1) + (sys->Scope.y - 1) * 8];
 					sys->Board[(sys->Scope.x - 1) + (sys->Scope.y - 1) * 8] = (Piece){ ' ', .possibleMoves = 0, .value = 0 };
