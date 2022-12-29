@@ -4,9 +4,6 @@
 #include <stdlib.h>
 #include <ctype.h>
 
-#include "structs.h"
-
-#include "EngineFuncs.h"
 
 //Dont know what this is, but prevents warnings to stop compilation
 #define _CRT_SECURE_NO_WARNINGS
@@ -14,22 +11,181 @@
 
 
 
+typedef struct {
+	int x;
+	int y;
+} Point;
+
+
+
+typedef struct {
+	char name;
+	int value;
+	int isSliding;
+	int hasMoved;//Pawn can only move if it is on the starting cell and has to free cells in front of it
+} Piece;
+
+typedef struct {
+
+	int DBoxColorR, DBoxColorG, DBoxColorB;
+	int LBoxColorR, LBoxColorG, LBoxColorB;
+
+	int DPieceColorR, DPieceColorG, DPieceColorB;
+	int LPieceColorR, LPieceColorG, LPieceColorB;
+
+
+}Colors;
+
+
+typedef struct {
+
+
+	Piece Board[64];//64-bit integer instead of Piece Array//Use char instead of int (one byte insted of 4)
+
+	Point Cursor;
+
+	int isWhiteTurn;
+
+	Point markedPos[64];
+
+	int MarkedCellsCounter;
+
+	int markedPosCol[64];
+
+	Point Scope;
+
+	char* msg[64];
+	int msgCounter;
+
+} Game;
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+void ENGINE_SetBackgroundColor(int R, int G, int B);
+void ENGINE_SetForegroundColor(int R, int G, int B);
+void ENGINE_SetCursorPos(Point coords);
+void ENGINE_WriteCharToXy(Point old, Point target, char ch, int returnToOldPos);
+
+
+
+
+void ENGINE_SetBackgroundColor(int R, int G, int B)
+{
+	printf("\x1b[48;2;%i;%i;%im", R, G, B);
+}
+
+void ENGINE_SetForegroundColor(int R, int G, int B)
+{
+	printf("\x1b[38;2;%i;%i;%im", R, G, B);
+}
+
+void ENGINE_SetCursorPos(Point coords)
+{
+	printf("\033[%d;%dH", coords.y, coords.x);
+}
+
+void ENGINE_WriteCharToXy(Point old, Point target, char ch, int returnToOldPos)
+{
+	ENGINE_SetCursorPos(target);
+	printf("%c", ch);
+	ENGINE_SetCursorPos(target);
+
+	returnToOldPos ? ENGINE_SetCursorPos(old) : ENGINE_SetCursorPos(target);
+}
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+Point POINT_Add(Point point1, Point point2);
+int POINT_IsZero(Point point);
+int POINT_equals(Point point1, Point point2);
+int POINT_getIndex(Point p);
+
+
+Point POINT_Add(Point point1, Point point2)
+{
+
+	return (Point) { point1.x + point2.x, point1.y + point2.y };
+}
+
+int POINT_IsZero(Point point)
+{
+	if (point.x == 0 && point.y == 0)
+	{
+		return 1;
+	}
+	return 0;
+}
+
+int POINT_equals(Point point1, Point point2)
+{
+	if (point1.x != point2.x)
+		return 0;
+	if (point1.y != point2.y)
+		return 0;
+
+	return 1;
+
+}
+
+int POINT_getIndex(Point p)
+{
+	return (p.x - 1) + (p.y - 1) * 8;
+}
+
+void log(char* msg, int severity, Game* sys)
+{
+	sys->msg[sys->msgCounter++] = msg;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
 int BOARD_ReadFEN(char* FEN, Game* sys);
 
 void PIECE_getChessPieceMoves(char piece, Point* buffer);
-int PIECE_getRecursivness(char piece);
+int PIECE_getSliding(char piece);
 int PIECE_getChessPieceValue(char piece);
 
 
-void BOARD_Print(Colors colors, Game* sys);
+void BOARD_Print(Colors* colors, Game* sys);
 void BOARD_MoveCursorLocal(Point d, Game* sys);
 
 void CELL_PrintPreview(Game* sys);
 void CELL_ClearPreview(Game* sys);
-void CELL_AddToPreview(Point coords, Game* sys);
+void CELL_AddToPreview(Point coords, Game* sys, int color);
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+int PointisInArray(Game* sys)
+{
+	for (size_t i = 0; i < sys->MarkedCellsCounter-1; i++)
+	{
+		if (POINT_equals(sys->Scope, sys->markedPos[i]))
+		{
+			return 1;
+		}
+	}
+	return 0;
+}
+
+
+int isThreat(Game* sys, char piece)
+{
+	if (sys->isWhiteTurn)
+	{
+		if (piece >= 'a' && piece <= 'z')
+			return 1;
+		return 0;
+	} else if (!sys->isWhiteTurn)
+	{
+		if (piece >= 'A' && piece <= 'Z')
+			return 1;
+		return 0;
+	}
+}
 
 
 int BOARD_ReadFEN(char* FEN, Game* sys)
@@ -44,12 +200,10 @@ int BOARD_ReadFEN(char* FEN, Game* sys)
 				(Piece)
 			{
 				.name = FEN[i],
-				.value = PIECE_getRecursivness(FEN[i]),
-				.isRecursive = PIECE_getRecursivness(FEN[i]),
+				.value = PIECE_getChessPieceValue(FEN[i]),
+				.isSliding = PIECE_getSliding(FEN[i]),
 				.hasMoved = 0
 			};
-
-			PIECE_getChessPieceMoves(FEN[i], &sys->Board[index].possibleMoves);
 			index++;
 		}
 
@@ -63,14 +217,14 @@ int BOARD_ReadFEN(char* FEN, Game* sys)
 
 
 
-//************************************************************************************************
-//PIECE
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 
 void PIECE_getChessPieceMoves(char piece, Point* buffer)
 {
 
-	Point moves[50];
-	for (size_t i = 0; i < 50; i++)
+	Point moves[8];
+	for (size_t i = 0; i < 8; i++)
 	{
 		moves[i] = (Point){ 0, 0 };
 	}
@@ -80,10 +234,10 @@ void PIECE_getChessPieceMoves(char piece, Point* buffer)
 	switch (piece)
 	{
 	case 'R':
-		moves[0] = (Point){ 1, 0 };
-		moves[1] = (Point){ -1, 0 };
-		moves[2] = (Point){ 0, 1 };
-		moves[3] = (Point){ 0, -1 };
+		moves[0] = (Point){ 0, -1 };
+		moves[1] = (Point){ 1, 0 };
+		moves[2] = (Point){ -1, 0 };
+		moves[3] = (Point){ 0, 1 };
 		break;
 	case 'B':
 		moves[0] = (Point){1, 1};
@@ -91,16 +245,16 @@ void PIECE_getChessPieceMoves(char piece, Point* buffer)
 		moves[2] = (Point){-1, 1};
 		moves[3] = (Point){1, -1};
 		break;
-	//case 'Q':
-	//	moves[0] = 7;
-	//	moves[1] = -7;
-	//	moves[2] = 9;
-	//	moves[3] = -9;
-	//	moves[4] = 1;
-	//	moves[5] = -1;
-	//	moves[6] = 8;
-	//	moves[7] = -8;
-	//	break;
+	case 'Q':
+		moves[0] = (Point){ 1, 1 };
+		moves[1] = (Point){ -1, -1 };
+		moves[2] = (Point){ -1, 1 };
+		moves[3] = (Point){ 1, -1 };
+		moves[4] = (Point){ 1, 0 };
+		moves[5] = (Point){ -1, 0 };
+		moves[6] = (Point){ 0, 1 };
+		moves[7] = (Point){ 0, -1 };
+		break;
 	case 'K':
 		moves[0] = (Point){ 0, 1 };
 		moves[1] = (Point){ 1, 1 };
@@ -129,10 +283,10 @@ void PIECE_getChessPieceMoves(char piece, Point* buffer)
 	default:
 		break;
 	}
-	memcpy(buffer, moves, sizeof(Point) * 50);
+	memcpy(buffer, moves, sizeof(Point) * 8);
 }
 
-int PIECE_getRecursivness(char piece)
+int PIECE_getSliding(char piece)
 {
 	piece = toupper(piece);
 
@@ -198,103 +352,121 @@ int PIECE_getChessPieceValue(char piece)
 
 
 
-void PIECE_getAllLegalMoves(Game* sys, Point piece, Point* Moves)
+void PIECE_getAllLegalMoves(Game* sys, Point* Buffer)
 {
-	int index = (piece.x - 1) + (piece.y - 1) * 8;
-
 	Point ps[50];
+	int psCounter = 0;
 
-	int psCounter = 0;//Counter for Array
+	char inpt = toupper(sys->Board[POINT_getIndex(sys->Scope)].name);
 
-		//Pawn/Knight/King
-		if (sys->Board[index].isRecursive == 0)
+	for (size_t i = 0; i < 50; i++)
+	{
+		ps[i] = (Point){ 0, 0 };
+	}
+
+	if (inpt == 'N')
+	{
+
+		Point Moves[8];
+		PIECE_getChessPieceMoves('N', &Moves);
+
+		for (size_t i = 0; i < 8; i++)
 		{
-
-			for (size_t i = 0; i < 50; i++)
-			{
-
-
-
-				Point markedPos = { 0, 0 };
-
-				//If black turn negate possible moveS
-				int multi = sys->isWhiteTurn ? 1 : -1;
-				markedPos = POINT_Add((Point) {
-					multi* (sys->Board[index].possibleMoves[i].x),
-						multi* sys->Board[index].possibleMoves[i].y
-				},
-					sys->Cursor);
-
-
-				if (markedPos.x < 1 || markedPos.x > 8 || markedPos.y < 1 || markedPos.y > 8)
-					continue;
-
-				ps[i] = markedPos;
-			}
-		}
-		//Rook, Bishop, Queen
-		else if (sys->Board[index].isRecursive == 1)
-		{
-
-			for (size_t i = 0; i < 50; i++)
-			{
-
-
-				//if (POINT_IsZero(sys->Board[index].possibleMoves[i])) 
-				//	ps[i + 1] = (Point){ 0, 0 };
-
-
-				int j = 1;
-
-
-				//if(Board[ index + possibleMove[i].x * j ].name
-				while (
-					sys->Board[
-						index + ((j * sys->Board[index].possibleMoves[i].x) + (j * sys->Board[index].possibleMoves[i].y * 8))
-					].name == ' '
-				)
+			int x = sys->Scope.x + Moves[i].x;
+			int y = sys->Scope.y + Moves[i].y;
+			if (x >= 1 && x <= 8)
+				if (y >= 1 && y <= 8)
 				{
-
-					int y = (index + ((j * sys->Board[index].possibleMoves[i].x) + (j * sys->Board[index].possibleMoves[i].y * 8))) / 8;
-					int x = (index + ((j * sys->Board[index].possibleMoves[i].x) + (j * sys->Board[index].possibleMoves[i].y * 8))) % 8;
-
-					Point markedPos = { x + 1, y + 1};
-
-					ps[psCounter++] = markedPos;
-
-					if (markedPos.x == 1 || markedPos.x == 8)
-						break;
-					j++;
-
-
+					ps[psCounter++] = (Point){ x, y };
 
 				}
+		}
+	}
+	else 
+	if (inpt ==  'P')
+	{
+		Point Moves[8];
+		PIECE_getChessPieceMoves('P', &Moves);
+
+		for (size_t i = 0; i < 8; i++)
+		{
+			//if piece has moved delete second element
+			if (sys->Board[POINT_getIndex(sys->Scope)].hasMoved && i == 1) continue;
+
+			sys->isWhiteTurn ? (Moves[i].y = Moves[i].y) : (Moves[i].y = -Moves[i].y);
+
+			int x = sys->Scope.x + Moves[i].x;
+			int y = sys->Scope.y + Moves[i].y;
+			if (x >= 1 && x <= 8)
+				if (y >= 1 && y <= 8)
+				{
+					ps[psCounter++] = (Point){ x, y };
+
+				}
+		}
+	}
+	else
+	if (inpt == 'K')
+	{
+
+		Point Moves[8];
+		PIECE_getChessPieceMoves('K', &Moves);
+
+		for (size_t i = 0; i < 8; i++)
+		{
+			int x = sys->Scope.x + Moves[i].x;
+			int y = sys->Scope.y + Moves[i].y;
+
+			if ((x >= 1 && x <= 8) && (y >= 1 && y <= 8))
+			{
+				ps[psCounter++] = (Point){ x, y };
 
 			}
 		}
-		for (size_t i = psCounter; i < 50; i++)
+	}
+	else
+		if (inpt == 'R' || inpt == 'Q' || inpt == 'B')
 		{
-			ps[i] = (Point){ 0, 0 };
+
+			Point movesa[8];
+			PIECE_getChessPieceMoves(inpt, &movesa);
+
+			for (size_t i = 0; i < 8; i++)
+			{
+
+				int x = sys->Scope.x + movesa[i].x;
+				int y = sys->Scope.y + movesa[i].y;
+
+				while (sys->Board[POINT_getIndex((Point) { x, y })].name == ' ')
+				{
+					if (!(x >= 1 && x <= 8) || !(y >= 1 && y <= 8))
+						break;
+
+
+					ps[psCounter++] = (Point){ x, y };
+
+					x = x + movesa[i].x;
+					y = y + movesa[i].y;
+
+				}
+				if (sys->Board[POINT_getIndex((Point) { x, y })].name != ' ' &&
+					(x >= 1 && x <= 8) && (y >= 1 && y <= 8) &&
+					isThreat(sys, sys->Board[POINT_getIndex((Point) { x, y })].name)
+					)
+				{
+					ps[psCounter++] = (Point){ x, y };
+				}
+			}
 		}
+	
 
-	memcpy(Moves, ps, sizeof(Point) * 50);
 
+
+	memcpy(Buffer, ps, sizeof(Point) * 50);
 }
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-
-
-
-
-
-
-
-
-
-
-
-//*******************************************************************************************
-//BOARD
 
 void BOARD_MoveCursorLocal(Point d, Game* sys)
 {
@@ -307,10 +479,6 @@ void BOARD_MoveCursorLocal(Point d, Game* sys)
 	else if (d.y == -1 && sys->Cursor.y < 8)//down
 	{ sys->Cursor.y++; }
 }
-
-
-
-
 
 void BOARD_Print(Colors* colors, Game* sys)
 {
@@ -351,20 +519,23 @@ void BOARD_Print(Colors* colors, Game* sys)
 
 	}
 
+	for (size_t i = 0; i < sys->msgCounter; i++)
+	{
+		printf("%s\n", sys->msg[i]);
+	}
+
 
 
 
 }
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-
-void CELL_AddToPreview(Point coords, Game* sys)
+void CELL_AddToPreview(Point coords, Game* sys, int color)
 {
-	/*int index = (coords.y - 1) * 8 + (coords.x - 1);
-	if(sys->Board[index].name == ' ')
-	*/	sys->markedPos[sys->MarkedCellsCounter++] = coords;
+	sys->markedPos[sys->MarkedCellsCounter] = coords;
+	sys->markedPosCol[sys->MarkedCellsCounter++] = color;
 
 }
-
 
 void CELL_ClearPreview(Game* sys)
 {
@@ -386,7 +557,23 @@ void CELL_PrintPreview(Game* sys)
 
 		ENGINE_SetCursorPos(sys->markedPos[i]);
 
-		ENGINE_SetBackgroundColor(44, 44, 233);
+		switch (sys->markedPosCol[i])
+		{
+		case 0:
+			ENGINE_SetBackgroundColor(44, 44, 233);
+			break;
+		
+		case 1:
+			ENGINE_SetBackgroundColor(0, 255, 0);
+			break;
+		
+		case 2:
+			ENGINE_SetBackgroundColor(0, 0, 255);
+			break;
+		default:
+			break;
+		}
+
 
 		int index = (sys->Scope.y-1) * 8 + (sys->Scope.x - 1);
 		printf("%c", sys->Board[index].name);
@@ -398,12 +585,12 @@ void CELL_PrintPreview(Game* sys)
 }
 
 
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
 
 int main()
 {
-
 	Game* sys = malloc(sizeof(Game));
 	Colors* SysCol = malloc(sizeof(Colors));
 
@@ -424,31 +611,25 @@ int main()
 	SysCol->LPieceColorG = 255;
 	SysCol->LPieceColorB = 255;
 
-
-
 	//Configure Game Settings
 	sys->Cursor = (Point){ .x = 1, .y = 1 };
 	sys->isWhiteTurn = 1; // Read that later of FEN string
 	sys->MarkedCellsCounter = 0;
 
-
-
-
+	sys->msgCounter = 0;
 
 	//clear everything before start, just because
 	for (size_t i = 0; i < 64; i++)
 	{
-		sys->Board[i] = (Piece){ ' ', .possibleMoves = 0, .value = 0 };
+		sys->Board[i] = (Piece){ ' ', .value = 0 };
 		sys->markedPos[i] = (Point){ .x = 0, .y = 0 };
+		sys->msg[i] = 0;
 	}
 	CELL_ClearPreview(sys);
 	sys->Scope = (Point){ 0, 0 };
 
-
-
-	BOARD_ReadFEN("3p48p2R87p", sys);
-
-
+	BOARD_ReadFEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR", sys);
+	//rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR
 
 	while (1)
 	{
@@ -457,6 +638,11 @@ int main()
 		BOARD_Print(SysCol, sys);
 
 		ENGINE_SetCursorPos(sys->Cursor);
+
+		for (size_t i = 0; i < 64; i++)
+		{
+			
+		}
 
 		CELL_PrintPreview(sys);
 
@@ -478,32 +664,46 @@ int main()
 				BOARD_MoveCursorLocal((Point) { 1, 0 }, sys);
 				break;
 			case '\r':
+				////Cant click on opponents piece if scope is zero
+				//if (POINT_IsZero(sys->Scope) &&
+				//	sys->isWhiteTurn &&
+				//	islower(sys->Board[POINT_getIndex(sys->Cursor)].name))
+				//{
+				//	log("White cant move Black Pieces! White is in turn", 1, sys);  break;
+				//}
+				//if (POINT_IsZero(sys->Scope) &&
+				//	!sys->isWhiteTurn &&
+				//	isupper(sys->Board[POINT_getIndex(sys->Cursor)].name))
+				//{
+				//	log("Black cant move White Pieces! Black is in turn", 1, sys);  break;
+				//}
 				//if no piece is selected, select one
 				if (POINT_IsZero(sys->Scope) && sys->Board[index].name != ' ')
 				{
 					
 					sys->Scope = sys->Cursor;
+
 					CELL_ClearPreview(sys);
 					
+					
+					Point* mov = malloc(50 * sizeof(Point));
 
+					PIECE_getAllLegalMoves(sys, mov);
 
-
-					//If selected Cell has no Piece, break
-					if (sys->Board[index].name == ' ')
-						break;
-
-					CELL_AddToPreview(sys->Scope, sys);
-
-					Point mov[50];
-
-					PIECE_getAllLegalMoves(sys, sys->Scope, mov);
+					CELL_AddToPreview(sys->Scope, sys, 1);
 
 					for (size_t i = 0; i < 50; i++)
-					{ 
+					{
 						if (POINT_IsZero(mov[i])) break;
-						CELL_AddToPreview(mov[i], sys); 
-					}
 
+						if (isThreat(sys, sys->Board[POINT_getIndex(mov[i])].name))
+						{
+							CELL_AddToPreview(mov[i], sys, 3);
+
+						}else
+							CELL_AddToPreview(mov[i], sys, 2); 
+					}
+					free(mov);
 
 				}
 				//if its the same piece selected prior, unselect it
@@ -512,10 +712,14 @@ int main()
 					sys->Scope = (Point){ 0, 0 };
 					CELL_ClearPreview(sys);
 				} 
-				else if(!POINT_IsZero(sys->Scope) && !POINT_equals(sys->Scope, sys->Cursor))//If Point is selected and not the same prior move piece
+				else if(!POINT_IsZero(sys->Scope) && !POINT_equals(sys->Scope, sys->Cursor)/* && PointisInArray(sys)*/)//If Point is selected and not the same prior move piece
 				{
+
+
+
+					sys->Board[(sys->Scope.x - 1) + (sys->Scope.y - 1) * 8].hasMoved = 1;
 					sys->Board[index] = sys->Board[(sys->Scope.x - 1) + (sys->Scope.y - 1) * 8];
-					sys->Board[(sys->Scope.x - 1) + (sys->Scope.y - 1) * 8] = (Piece){ ' ', .possibleMoves = 0, .value = 0 };
+					sys->Board[(sys->Scope.x - 1) + (sys->Scope.y - 1) * 8] = (Piece){ ' ', .value = 0 };
 
 					sys->Scope = (Point){ 0, 0 };
 					CELL_ClearPreview(sys);
