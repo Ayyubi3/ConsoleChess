@@ -215,7 +215,7 @@ void PIECE_getAllLegalMoves(Game* sys, Point* Buffer, Point piece)
 	for (size_t i = 0; i < 50; i++) 
 		possibleMoves[i] = POINT( 0, 0 ); 
 
-	if (inpt == 'N' || inpt == 'K' || inpt == 'P')
+	if (inpt == 'P')
 	{
 
 		Point Moves[8];
@@ -224,9 +224,6 @@ void PIECE_getAllLegalMoves(Game* sys, Point* Buffer, Point piece)
 		for (size_t i = 0; i < 8; i++)
 		{
 
-
-			if (inpt == 'P')//Pawn has some special rules
-			{
 				//Invert Move for Pawn(Other Pieces are independet of whos turn it is)
 				sys->isWhiteTurn ? (Moves[i].y = Moves[i].y) : (Moves[i].y = -Moves[i].y);
 
@@ -237,7 +234,7 @@ void PIECE_getAllLegalMoves(Game* sys, Point* Buffer, Point piece)
 					i == 1
 					)
 					continue;
-			}
+			
 
 			//Calculate next cell
 			int x = piece.x + Moves[i].x;
@@ -246,41 +243,8 @@ void PIECE_getAllLegalMoves(Game* sys, Point* Buffer, Point piece)
 			if (!(x >= 1 && x <= 8) || !(y >= 1 && y <= 8))//if out of bound: kill iteration
 				continue;
 			
-			if (inpt == 'K')
-			{
-				//PROBLEM1.2
-				//Now you get to this point
-				//Here you want to know what Cells black attacks
-				//so you dont add them to the possiblemoves arr(Because Kings can only move to cells that are not attacked)
-				int x = 0;
-				Point* arr = malloc(500 * sizeof(Point));
-				for (size_t i = 0; i < 500; i++)
-					arr[i] = POINT(0, 0);
-
-
-				//Here you ask what moves black can do(!isWhiteTurn is black because currently its whites turn)
-				BOARD_getAllPossibleMovesForColor(sys, !sys->isWhiteTurn, &arr);
-
-				for (size_t i = 0; i < 500; i++)
-				{
-					if (POINT_equals(arr[i], POINT(x,y)))
-					{
-						x = 1;
-					}
-				}
-				free(arr);
-				if (x) break;
-			}
-
 			if (sys->Board[POINT_getIndex(POINT( x, y ))] == ' ') //If cell is empty move should be safe todo. NOTE: might cause problems with king later
 				possibleMoves[pMCounter++] = POINT( x, y ); 
-			else if (isThreat(sys, sys->Board[POINT_getIndex(POINT(x, y ))]) && inpt != 'P')//If Cell is threat mark it. NOTE: maybe change that later so the dangered pieces are in a different array
-				possibleMoves[pMCounter++] = POINT( x, y ); 
-
-
-
-
-			if (inpt != 'P') continue;
 
 			//Pawns movement
 			int offsetMultiplier;
@@ -302,8 +266,65 @@ void PIECE_getAllLegalMoves(Game* sys, Point* Buffer, Point piece)
 				possibleMoves[pMCounter++] = p2Point;
 		}
 	} 
-	else 
-	if (inpt == 'R' || inpt == 'Q' || inpt == 'B')
+	else if (inpt == 'K')//Black Piece
+	{
+
+		Point Moves[8];
+		PIECE_getChessPieceMoves(inpt, &Moves);
+		
+		for (size_t i = 0; i < 8; i++)
+		{
+
+			//Calculate next cell
+			int x = piece.x + Moves[i].x;
+			int y = piece.y + Moves[i].y;
+
+			if (!(x >= 1 && x <= 8) || !(y >= 1 && y <= 8))//if out of bound: kill iteration
+				continue;
+
+
+				int isInArray = 0;
+
+				Point arr[30];
+				for (size_t i = 0; i < 30; i++)
+					arr[i] = POINT(0, 0);
+
+
+				BOARD_getAllPossibleMovesForColor(sys, !sys->isWhiteTurn, arr);
+
+
+				if (POINT_isPointInArray(sys, POINT(x, y), 30, &arr)) continue;
+			
+
+			if (sys->Board[POINT_getIndex(POINT(x, y))] == ' ') //If cell is empty move should be safe todo. NOTE: might cause problems with king later
+				possibleMoves[pMCounter++] = POINT(x, y);
+			else if (isThreat(sys, sys->Board[POINT_getIndex(POINT(x, y))]))//If Cell is threat mark it. NOTE: maybe change that later so the dangered pieces are in a different array
+				possibleMoves[pMCounter++] = POINT(x, y);
+		}
+	} 	
+	else if (inpt == 'N')
+	{
+
+		Point Moves[8];
+		PIECE_getChessPieceMoves(inpt, &Moves);
+
+		for (size_t i = 0; i < 8; i++)
+		{
+
+			//Calculate next cell
+			int x = piece.x + Moves[i].x;
+			int y = piece.y + Moves[i].y;
+
+			if (!(x >= 1 && x <= 8) || !(y >= 1 && y <= 8))//if out of bound: kill iteration
+				continue;
+
+			if (sys->Board[POINT_getIndex(POINT(x, y))] == ' ') //If cell is empty move should be safe todo. NOTE: might cause problems with king later
+				possibleMoves[pMCounter++] = POINT(x, y);
+			else if (isThreat(sys, sys->Board[POINT_getIndex(POINT(x, y))]))//If Cell is threat mark it. NOTE: maybe change that later so the dangered pieces are in a different array
+				possibleMoves[pMCounter++] = POINT(x, y);
+		}
+	}
+	else if (inpt == 'R' || inpt == 'Q' || inpt == 'B')
 		{
 
 			Point Moves[8];
@@ -311,10 +332,13 @@ void PIECE_getAllLegalMoves(Game* sys, Point* Buffer, Point piece)
 
 			for (size_t i = 0; i < 8; i++)
 			{
-
+				
 				int x = piece.x + Moves[i].x;
 				int y = piece.y + Moves[i].y;
-
+				if (POINT_IsZero(Moves[i]))
+				{
+					continue;
+				}
 				while (sys->Board[POINT_getIndex(POINT(x, y ))] == ' ')
 				{
 					if (!(x >= 1 && x <= 8) || !(y >= 1 && y <= 8))
@@ -381,9 +405,12 @@ void BOARD_getAllPossibleMovesForColor(Game* sys, int searchWhite, Point* arr)
 {
 	//PROBLEM1.3
 	//Now you make an array big enough to store all possible moves
-	Point* possibleMove = malloc(sizeof(Point) * 500);//NOTE: 500 might be to little
+	Point possibleMove[30]/* = malloc(sizeof(Point) * 500)*/;//NOTE: 500 might be to little
 
-	for (size_t i = 0; i < 500; i++)
+	if (possibleMove == 0)
+		exit(123);
+
+	for (size_t i = 0; i < 30; i++)
 		possibleMove[i] = POINT(0, 0);
 	
 	int counter = 0;
@@ -434,17 +461,14 @@ void BOARD_getAllPossibleMovesForColor(Game* sys, int searchWhite, Point* arr)
 						{
 							break;
 						}
+
 						possibleMove[counter++] = arr[d];
 					}
 				}
 			}
 
 		}
-	//PROBLEM1.5
-	//And here you want tell the other function what moves black can play but the following error occurs
-	//Exception thrown at 0x78B73DC4 (vcruntime140d.dll) in ConsoleChess.exe: 0xC0000005 : Access violation writing location 0x007B0000.
-	memcpy(arr, possibleMove, sizeof(Point) * 500);
-	free(possibleMove);
+	memcpy(arr, possibleMove, sizeof(Point) * 30);
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -528,7 +552,7 @@ int main()
 	CELL_ClearPreview(sys);
 	sys->Scope = POINT( 0, 0 );
 
-	BOARD_ReadFEN("884r35K w", sys);
+	BOARD_ReadFEN("8/8/k8/K8/8/8/8/8 b", sys);
 	//rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR
 
 	while (1)
@@ -581,8 +605,6 @@ int main()
 									
 					Point* mov = malloc(50 * sizeof(Point));
 
-					//PROBLEM1.1
-					//If you got to this line you selected the king and want to know what moves are Possible
 					PIECE_getAllLegalMoves(sys, mov, sys->Scope);
 
 					CELL_AddToPreview(sys->Scope, sys, 1);
