@@ -84,11 +84,13 @@ int POINT_isPointInArray(Game* sys, Point p, int length, Point* arr)
 
 int BOARD_ReadFEN(char* FEN, Game* sys);
 
+void PIECE_getAllLegalMoves(Game* sys, Point* Buffer, Point piece, int r);
 void PIECE_getChessPieceMoves(char piece, Point* buffer);
 int PIECE_getChessPieceValue(char piece);
 
 void BOARD_Print(Colors* colors, Game* sys);
 void BOARD_getAllPossibleMovesForColor(Game* sys, int searchWhite);
+
 
 void CELL_PrintPreview(Game* sys);
 void CELL_ClearPreview(Game* sys);
@@ -204,17 +206,20 @@ int PIECE_getChessPieceValue(char piece)
 	}
 }
 
-void PIECE_getAllLegalMoves(Game* sys, Point* Buffer, Point piece)
+void PIECE_getAllLegalMoves(Game* sys, Point* Buffer, Point piece, int shouldSubstractEnemiesPossibleMoves)
 {
-	Point possibleMoves[50];
+	#define possibleMovesArrayLength 50
+
+	Point possibleMoves[possibleMovesArrayLength];
 	int pMCounter = 0;
 
 	int indexOfPiece = POINT_getIndex(piece);
 	char inpt = toupper(sys->Board[indexOfPiece]);
 
-	for (size_t i = 0; i < 50; i++) 
+	for (size_t i = 0; i < possibleMovesArrayLength; i++)
 		possibleMoves[i] = POINT( 0, 0 ); 
 
+	////////////////////////////////////////////////////////////////////////////////////////////
 	if (inpt == 'P')
 	{
 
@@ -265,13 +270,13 @@ void PIECE_getAllLegalMoves(Game* sys, Point* Buffer, Point piece)
 			if (p2 != ' ' && ((p2Point.x >= 1 && p2Point.x <= 8) && (p2Point.y >= 1 && p2Point.y <= 8)))
 				possibleMoves[pMCounter++] = p2Point;
 		}
-	} 
+	} ////////////////////////////////////////////////////////////////////////////////////////////
 	else if (inpt == 'K')//Black Piece
 	{
 
 		Point Moves[8];
 		PIECE_getChessPieceMoves(inpt, &Moves);
-		
+
 		for (size_t i = 0; i < 8; i++)
 		{
 
@@ -283,25 +288,55 @@ void PIECE_getAllLegalMoves(Game* sys, Point* Buffer, Point piece)
 				continue;
 
 
-				int isInArray = 0;
-
-				Point arr[30];
-				for (size_t i = 0; i < 30; i++)
-					arr[i] = POINT(0, 0);
-
-
-				BOARD_getAllPossibleMovesForColor(sys, !sys->isWhiteTurn, arr);
-
-
-				if (POINT_isPointInArray(sys, POINT(x, y), 30, &arr)) continue;
-			
-
 			if (sys->Board[POINT_getIndex(POINT(x, y))] == ' ') //If cell is empty move should be safe todo. NOTE: might cause problems with king later
 				possibleMoves[pMCounter++] = POINT(x, y);
 			else if (isThreat(sys, sys->Board[POINT_getIndex(POINT(x, y))]))//If Cell is threat mark it. NOTE: maybe change that later so the dangered pieces are in a different array
 				possibleMoves[pMCounter++] = POINT(x, y);
 		}
-	} 	
+
+		//Here possibleMoves Array has all position Kings can go to without considering the enmies pieces
+		if (shouldSubstractEnemiesPossibleMoves)
+		{
+			Point EnemyTargetCells[30];
+			Point newOutput[30];
+			int newOutputCounter = 0;
+			for (size_t i = 0; i < 30; i++)
+			{
+				EnemyTargetCells[i] = POINT(0, 0);
+				newOutput[i] = POINT(0, 0);
+			}
+
+			BOARD_getAllPossibleMovesForColor(sys, !sys->isWhiteTurn, EnemyTargetCells);
+
+			//Go through all possibleMoves and sort out any that are threatend and put them in newOutput
+
+			for (size_t i = 0; i < 8; i++)
+			{
+				int check = 0;
+				for (size_t j = 0; j < 30; j++)
+				{
+					if (POINT_equals(possibleMoves[i], EnemyTargetCells[j]))
+					{
+						check = 1;
+					}
+				}
+				if (!check) newOutput[newOutputCounter++] = possibleMoves[i];
+			}
+
+			for (size_t i = 0; i < possibleMovesArrayLength; i++)
+			{
+				possibleMoves[i] = POINT(0, 0);
+
+
+			}
+			for (size_t i = 0; i < 30; i++)
+			{
+				possibleMoves[i] = newOutput[i];
+			}
+		}
+
+
+	} ////////////////////////////////////////////////////////////////////////////////////////////
 	else if (inpt == 'N')
 	{
 
@@ -323,7 +358,7 @@ void PIECE_getAllLegalMoves(Game* sys, Point* Buffer, Point piece)
 			else if (isThreat(sys, sys->Board[POINT_getIndex(POINT(x, y))]))//If Cell is threat mark it. NOTE: maybe change that later so the dangered pieces are in a different array
 				possibleMoves[pMCounter++] = POINT(x, y);
 		}
-	}
+	} ////////////////////////////////////////////////////////////////////////////////////////////
 	else if (inpt == 'R' || inpt == 'Q' || inpt == 'B')
 		{
 
@@ -360,7 +395,7 @@ void PIECE_getAllLegalMoves(Game* sys, Point* Buffer, Point piece)
 
 
 
-	memcpy(Buffer, possibleMoves, sizeof(Point) * 50);
+	memcpy(Buffer, possibleMoves, sizeof(Point) * possibleMovesArrayLength);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -429,7 +464,7 @@ void BOARD_getAllPossibleMovesForColor(Game* sys, int searchWhite, Point* arr)
 
 
 					Point arr[50];
-					PIECE_getAllLegalMoves(sys, &arr, POINT(i, j));
+					PIECE_getAllLegalMoves(sys, &arr, POINT(i, j), 0);
 
 					for (size_t d = 0; d < 50; d++)
 					{
@@ -453,7 +488,7 @@ void BOARD_getAllPossibleMovesForColor(Game* sys, int searchWhite, Point* arr)
 					//You get all moves and safe them in the big array at the top called possibleMove
 
 					Point arr[50];
-					PIECE_getAllLegalMoves(sys, &arr, POINT(i, j));
+					PIECE_getAllLegalMoves(sys, &arr, POINT(i, j), 0);
 
 					for (size_t d = 0; d < 50; d++)
 					{
@@ -552,7 +587,7 @@ int main()
 	CELL_ClearPreview(sys);
 	sys->Scope = POINT( 0, 0 );
 
-	BOARD_ReadFEN("8/8/k8/K8/8/8/8/8 b", sys);
+	BOARD_ReadFEN("k7/8/K8/r8/8/8/8/8 w", sys);
 	//rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR
 
 	while (1)
@@ -605,7 +640,7 @@ int main()
 									
 					Point* mov = malloc(50 * sizeof(Point));
 
-					PIECE_getAllLegalMoves(sys, mov, sys->Scope);
+					PIECE_getAllLegalMoves(sys, mov, sys->Scope, 1);
 
 					CELL_AddToPreview(sys->Scope, sys, 1);
 
