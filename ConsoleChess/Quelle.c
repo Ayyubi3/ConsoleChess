@@ -8,6 +8,8 @@
 #define _CRT_SECURE_NO_WARNINGS
 #pragma warning(disable : 4996)
 
+#pragma region STRUCTS
+
 typedef struct { int x; int y; } Point;
 
 typedef struct
@@ -38,8 +40,9 @@ typedef struct
 
 	int markedPosCol[64];
 } Game;
+#pragma endregion
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#pragma region ENGINE CLASS
 
 void ENGINE_SetBackgroundColor(int R, int G, int B)
 {
@@ -56,7 +59,9 @@ void ENGINE_SetCursorPos(Point coords)
 	printf("\033[%d;%dH", coords.y, coords.x);
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#pragma endregion
+
+#pragma region POINT CLASS
 
 Point POINT(int x, int y)
 {
@@ -95,60 +100,27 @@ int POINT_isPointInArray(Game *sys, Point p, int length, Point *arr)
 	return 0;
 }
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#pragma endregion
 
-int BOARD_ReadFEN(char *FEN, Game *sys);
+#pragma region FUNCTION DEFINITIONS
 
-void PIECE_getAllMovesAbsolute(Game *sys, Point *Buffer, Point piece, int r);
-void PIECE_getAllMovesRelative(char piece, Point *buffer);
+void PIECE_getAllMovesAbsolute(Game* sys, Point* BufferSize50, Point piece, int antiRecursion, int isWhiteTurn);
+void PIECE_getAllMovesRelative(char piece, Point* buffer);
 int PIECE_getChessPieceValue(char piece);
 int PIECE_isInBoard(Point x);
+int PIECE_isThreat( char piece, int isWhiteTurn);
 
 void BOARD_Print(Colors *colors, Game *sys);
 void BOARD_getAllMovesForColor(Game *sys, int searchWhite, Point *arr);
+int BOARD_ReadFEN(char* FEN, Game* sys);
 
 void CELL_PrintPreview(Game *sys);
 void CELL_ClearPreview(Game *sys);
 void CELL_AddToPreview(Point coords, Game *sys, int color);
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#pragma endregion
 
-int isThreat(Game *sys, char piece, int isWhiteTurn)
-{
-	if (isWhiteTurn)
-		return (piece >= 'a' && piece <= 'z');
-	else if (!isWhiteTurn)
-		return (piece >= 'A' && piece <= 'Z');
-}
-
-int BOARD_ReadFEN(char *FEN, Game *sys)
-{
-	// TODO: Process extended FEN string (The part after the long string with w-- etc)
-	int index = 0, i;
-	for (i = 0; FEN[i] != '\0' && FEN[i] != ' '; i++)
-	{
-		if ('A' <= FEN[i] && FEN[i] <= 'z')
-		{
-			sys->Board[index] = FEN[i];
-			index++;
-		}
-		else if ('0' <= FEN[i] && FEN[i] <= '9')
-		{
-			index += (FEN[i] - 48);
-		}
-		else if (FEN[i] == '/')
-		{
-			for (size_t j = 0; index % 8 == 1; j++)
-			{
-				index++;
-			}
-		}
-	}
-
-	sys->isWhiteTurn = FEN[++i] == 'w';
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#pragma region PIECE DICTIONARIES
 
 int PIECE_getChessPieceValue(char piece)
 {
@@ -172,7 +144,7 @@ int PIECE_getChessPieceValue(char piece)
 	}
 }
 
-void PIECE_getAllMovesRelative(char piece, Point *bufferSize8)
+void PIECE_getAllMovesRelative(char piece, Point* bufferSize8)
 {
 
 	Point moves[8];
@@ -231,7 +203,23 @@ void PIECE_getAllMovesRelative(char piece, Point *bufferSize8)
 	memcpy(bufferSize8, moves, sizeof(Point) * 8);
 }
 
-void PIECE_getAllMovesAbsolute(Game *sys, Point *BufferSize50, Point piece, int shouldSubstractEnemiesPossibleMoves)
+#pragma endregion
+
+int PIECE_isThreat(char piece, int isWhiteTurn)
+{
+	if (isWhiteTurn)
+		return (piece >= 'a' && piece <= 'z');
+	else if (!isWhiteTurn)
+		return (piece >= 'A' && piece <= 'Z');
+}
+
+
+int PIECE_isInBoard(Point x)
+{
+	return (x.x >= 1 && x.x <= 8) && (x.y >= 1 && x.y <= 8);
+}
+
+void PIECE_getAllMovesAbsolute(Game *sys, Point *BufferSize50, Point piece, int antiRecursion, int isWhiteTurn)
 {
 #define possibleMovesArrayLength 50
 
@@ -244,7 +232,15 @@ void PIECE_getAllMovesAbsolute(Game *sys, Point *BufferSize50, Point piece, int 
 	for (size_t i = 0; i < possibleMovesArrayLength; i++)
 		possibleMoves[i] = POINT(0, 0);
 
-	////////////////////////////////////////////////////////////////////////////////////////////
+	//if (antiRecursion)
+	//{
+	//	if (BOARD_isKingInCheck(sys, isWhiteTurn))
+	//	{
+	//		memcpy(BufferSize50, possibleMoves, sizeof(Point) * possibleMovesArrayLength);
+	//		return;
+	//	}
+	//}
+
 	if (inpt == 'P')
 	{
 
@@ -255,12 +251,12 @@ void PIECE_getAllMovesAbsolute(Game *sys, Point *BufferSize50, Point piece, int 
 		{
 
 			// Invert Move for Pawn(Other Pieces are independet of whos turn it is)
-			sys->isWhiteTurn ? (Moves[i].y = Moves[i].y) : (Moves[i].y = -Moves[i].y);
+			isWhiteTurn ? (Moves[i].y = Moves[i].y) : (Moves[i].y = -Moves[i].y);
 
 			// Pawn: If already moved dont add +2 movement
 			if (!(
-					((piece.y == 7 && sys->isWhiteTurn) ||
-					 (piece.y == 2 && !sys->isWhiteTurn))) &&
+					((piece.y == 7 && isWhiteTurn) ||
+					 (piece.y == 2 && !isWhiteTurn))) &&
 				i == 1)
 				continue;
 
@@ -276,7 +272,7 @@ void PIECE_getAllMovesAbsolute(Game *sys, Point *BufferSize50, Point piece, int 
 
 			// Pawns movement
 			int offsetMultiplier;
-			sys->isWhiteTurn ? (offsetMultiplier = -1) : (offsetMultiplier = 1);
+			isWhiteTurn ? (offsetMultiplier = -1) : (offsetMultiplier = 1);
 
 			Point offset1 = POINT(1, offsetMultiplier);
 			Point offset2 = POINT(-1, offsetMultiplier);
@@ -287,14 +283,14 @@ void PIECE_getAllMovesAbsolute(Game *sys, Point *BufferSize50, Point piece, int 
 			char p1 = sys->Board[POINT_getIndex(p1Point)];
 			char p2 = sys->Board[POINT_getIndex(p2Point)];
 
-			if (p1 != ' ' && PIECE_isInBoard(p1Point) && isThreat(sys, sys->Board[POINT_getIndex(p1Point)], sys->isWhiteTurn))
+			if (p1 != ' ' && PIECE_isInBoard(p1Point) && PIECE_isThreat(sys->Board[POINT_getIndex(p1Point)], isWhiteTurn))
 				possibleMoves[pMCounter++] = p1Point;
 
-			if (p2 != ' ' && PIECE_isInBoard(p2Point) && isThreat(sys, sys->Board[POINT_getIndex(p1Point)], sys->isWhiteTurn))
+			if (p2 != ' ' && PIECE_isInBoard(p2Point) && PIECE_isThreat(sys->Board[POINT_getIndex(p1Point)], isWhiteTurn))
 				possibleMoves[pMCounter++] = p2Point;
 		}
-	}					  ////////////////////////////////////////////////////////////////////////////////////////////
-	else if (inpt == 'K') // Black Piece
+	} ////////////////////////////////////////////////////////////////////////////////////////////
+	else if (inpt == 'K') 
 	{
 
 		Point Moves[8];
@@ -312,12 +308,12 @@ void PIECE_getAllMovesAbsolute(Game *sys, Point *BufferSize50, Point piece, int 
 
 			if (sys->Board[POINT_getIndex(POINT(x, y))] == ' ') // If cell is empty move should be safe todo. NOTE: might cause problems with king later
 				possibleMoves[pMCounter++] = POINT(x, y);
-			else if (isThreat(sys, sys->Board[POINT_getIndex(POINT(x, y))], sys->isWhiteTurn)) // If Cell is threat mark it. NOTE: maybe change that later so the dangered pieces are in a different array
+			else if (PIECE_isThreat( sys->Board[POINT_getIndex(POINT(x, y))], isWhiteTurn)) // If Cell is threat mark it. NOTE: maybe change that later so the dangered pieces are in a different array
 				possibleMoves[pMCounter++] = POINT(x, y);
 		}
 
 		// Here possibleMoves Array has all position Kings can go to without considering the enmies pieces
-		if (shouldSubstractEnemiesPossibleMoves)
+		if (antiRecursion)
 		{
 			Point EnemyTargetCells[64];
 			Point newOutput[30];
@@ -328,7 +324,7 @@ void PIECE_getAllMovesAbsolute(Game *sys, Point *BufferSize50, Point piece, int 
 				newOutput[i] = POINT(0, 0);
 			}
 
-			BOARD_getAllMovesForColor(sys, !sys->isWhiteTurn, &EnemyTargetCells);
+			BOARD_getAllMovesForColor(sys, !isWhiteTurn, &EnemyTargetCells);
 
 			// Go through all possibleMoves and sort out any that are threatend and put them in newOutput
 
@@ -375,7 +371,7 @@ void PIECE_getAllMovesAbsolute(Game *sys, Point *BufferSize50, Point piece, int 
 
 			if (sys->Board[POINT_getIndex(POINT(x, y))] == ' ') // If cell is empty move should be safe todo. NOTE: might cause problems with king later
 				possibleMoves[pMCounter++] = POINT(x, y);
-			else if (isThreat(sys, sys->Board[POINT_getIndex(POINT(x, y))], sys->isWhiteTurn)) // If Cell is threat mark it. NOTE: maybe change that later so the dangered pieces are in a different array
+			else if (PIECE_isThreat(sys->Board[POINT_getIndex(POINT(x, y))], isWhiteTurn)) // If Cell is threat mark it. NOTE: maybe change that later so the dangered pieces are in a different array
 				possibleMoves[pMCounter++] = POINT(x, y);
 		}
 	} ////////////////////////////////////////////////////////////////////////////////////////////
@@ -406,18 +402,17 @@ void PIECE_getAllMovesAbsolute(Game *sys, Point *BufferSize50, Point piece, int 
 			}
 
 			// If next Cell is not out of Bounds and is Enemy Piece: Add to list
-			if (PIECE_isInBoard(POINT(x, y)) && isThreat(sys, sys->Board[POINT_getIndex(POINT(x, y))], sys->isWhiteTurn))
+			if (PIECE_isInBoard(POINT(x, y)) && PIECE_isThreat(sys->Board[POINT_getIndex(POINT(x, y))], isWhiteTurn))
 				possibleMoves[pMCounter++] = POINT(x, y);
 		}
 	}
 
 	memcpy(BufferSize50, possibleMoves, sizeof(Point) * possibleMovesArrayLength);
+
+
+	#undef possibleMovesArrayLength
 }
 
-int PIECE_isInBoard(Point x)
-{
-	return (x.x >= 1 && x.x <= 8) && (x.y >= 1 && x.y <= 8);
-}
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 void BOARD_Print(Colors *colors, Game *sys)
@@ -449,6 +444,33 @@ void BOARD_Print(Colors *colors, Game *sys)
 	}
 }
 
+int BOARD_ReadFEN(char* FEN, Game* sys)
+{
+	// TODO: Process extended FEN string (The part after the long string with w-- etc)
+	int index = 0, i;
+	for (i = 0; FEN[i] != '\0' && FEN[i] != ' '; i++)
+	{
+		if ('A' <= FEN[i] && FEN[i] <= 'z')
+		{
+			sys->Board[index] = FEN[i];
+			index++;
+		}
+		else if ('0' <= FEN[i] && FEN[i] <= '9')
+		{
+			index += (FEN[i] - 48);
+		}
+		else if (FEN[i] == '/')
+		{
+			for (size_t j = 0; index % 8 == 1; j++)
+			{
+				index++;
+			}
+		}
+	}
+
+	sys->isWhiteTurn = FEN[++i] == 'w';
+}
+
 void BOARD_getAllMovesForColor(Game* sys, int searchWhite, Point* BufferSize128)
 {
 	Point possibleMove[128];
@@ -466,11 +488,11 @@ void BOARD_getAllMovesForColor(Game* sys, int searchWhite, Point* BufferSize128)
 			// Just calculate all possible moves for all white pieces
 			if (1)
 			{
-				if (sys->Board[POINT_getIndex(POINT(i, j))] != ' ' && isThreat(sys, sys->Board[POINT_getIndex(POINT(i, j))], !searchWhite))
+				if (sys->Board[POINT_getIndex(POINT(i, j))] != ' ' && PIECE_isThreat( sys->Board[POINT_getIndex(POINT(i, j))], !searchWhite))
 				{
 
 					Point arr[50];
-					PIECE_getAllMovesAbsolute(sys, &arr, POINT(i, j), 0);
+					PIECE_getAllMovesAbsolute(sys, &arr, POINT(i, j), 0, searchWhite);
 
 					if (sys->Board[POINT_getIndex(POINT(i, j))] != test)
 					{
@@ -528,7 +550,36 @@ void BOARD_getAllMovesForColor(Game* sys, int searchWhite, Point* BufferSize128)
 
 	memcpy(BufferSize128, possibleMove, sizeof(Point) * 64);
 }
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+int BOARD_isKingInCheck(Game* sys, int isWhiteTurn)
+{
+	Point buff[64];
+	BOARD_getAllMovesForColor(sys, !isWhiteTurn, &buff);
+
+	char target = isWhiteTurn ? 'K' : 'k';
+	int targetIndex = 0;
+
+	//find the your king
+	for (size_t i = 0; i < 64; i++)
+	{
+		if (sys->Board[i] == target)
+		{
+			targetIndex = i;
+			break;
+		}
+	}
+
+	Point trag = POINT(targetIndex % 8 + 1, targetIndex / 8 + 1);
+	for (size_t i = 0; i < 64; i++)
+	{
+		if (POINT_equals(buff[i], trag))
+		{
+			return 1;
+		}
+	}
+
+	return 0;
+}
 
 void CELL_AddToPreview(Point coords, Game *sys, int color)
 {
@@ -612,7 +663,7 @@ int main()
 	CELL_ClearPreview(sys);
 	sys->Scope = POINT(0, 0);
 
-	BOARD_ReadFEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w", sys);
+	BOARD_ReadFEN("8/4k3/8/8/2R1K3/8/8/8 w", sys);
 	// rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR
 
 	while (1)
@@ -625,27 +676,7 @@ int main()
 
 		CELL_PrintPreview(sys);
 
-		//Point buff[64];
-		//BOARD_getAllMovesForColor(sys, !sys->isWhiteTurn, &buff);
 
-		//char target = sys->isWhiteTurn ? 'K' : 'k';
-		//int targetIndex = 0;
-		//for (size_t i = 0; i < 64; i++)
-		//{
-		//	if (sys->Board[i] == target)
-		//	{
-		//		targetIndex = i;
-		//		break;
-		//	}
-		//}
-
-		//Point trag = POINT(targetIndex % 8 + 1, targetIndex / 8 + 1);
-		//for (size_t i = 0; i < 64; i++)
-		//{
-		//	if (POINT_equals(buff[i], trag))
-		//	{
-		//	}
-		//}
 
 		char ctrl = getch();
 
@@ -689,7 +720,8 @@ int main()
 
 				Point *mov = malloc(64 * sizeof(Point));
 
-				PIECE_getAllMovesAbsolute(sys, mov, sys->Scope, 1);
+				//get all absolute positions possible for the currently playing
+				PIECE_getAllMovesAbsolute(sys, mov, sys->Scope, 1, sys->isWhiteTurn);
 
 				CELL_AddToPreview(sys->Scope, sys, 1);
 
@@ -698,7 +730,7 @@ int main()
 					if (POINT_IsZero(mov[i]))
 						break;
 
-					isThreat(sys, sys->Board[POINT_getIndex(mov[i])], sys->isWhiteTurn) ? CELL_AddToPreview(mov[i], sys, 3) : CELL_AddToPreview(mov[i], sys, 2);
+					PIECE_isThreat(sys->Board[POINT_getIndex(mov[i])], sys->isWhiteTurn) ? CELL_AddToPreview(mov[i], sys, 3) : CELL_AddToPreview(mov[i], sys, 2);
 				}
 
 				free(mov);
