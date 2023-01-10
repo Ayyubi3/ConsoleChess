@@ -8,20 +8,13 @@
 #define _CRT_SECURE_NO_WARNINGS
 #pragma warning(disable : 4996)
 
-#pragma region STRUCTS
+
+
+
+
+
 
 typedef struct { int x; int y; } Point;
-
-typedef struct
-{
-
-	int DBoxColorR, DBoxColorG, DBoxColorB;
-	int LBoxColorR, LBoxColorG, LBoxColorB;
-
-	int DPieceColorR, DPieceColorG, DPieceColorB;
-	int LPieceColorR, LPieceColorG, LPieceColorB;
-
-} Colors;
 
 typedef struct
 {
@@ -40,15 +33,35 @@ typedef struct
 
 	int markedPosCol[64];
 
-	int castleWhiteQueenSide;
-	int castleWhiteKingSide;
-	int castleBlackQueenSide;
-	int castleBlackKingSide;
-
 } Game;
-#pragma endregion
 
-#pragma region ENGINE CLASS
+
+
+
+
+
+void PIECE_getAllMovesAbsolute(char* Board, Point* BufferSize50, Point piece, int antiRecursion, int isWhiteTurn);
+void PIECE_getAllMovesRelative(char piece, Point* buffer);
+int PIECE_isInBoard(Point x);
+int PIECE_isThreat(char piece, int isWhiteTurn);
+void PIECE_makeMove(char* Board, Point Piece, Point Target);
+
+void BOARD_Print(Game* sys);
+void BOARD_getAllCellsThatareDanger(char* Board, int searchWhite, Point* BufferSize128);
+int BOARD_ReadFEN(char* FEN, Game* sys);
+
+void CELL_PrintPreview(Game* sys);
+void CELL_ClearPreview(Game* sys);
+void CELL_AddToPreview(Point coords, Game* sys, int color);
+
+
+
+
+
+
+
+
+
 
 void ENGINE_SetBackgroundColor(int R, int G, int B)
 {
@@ -65,10 +78,13 @@ void ENGINE_SetCursorPos(Point coords)
 	printf("\033[%d;%dH", coords.y, coords.x);
 }
 
-#pragma endregion
 
-#pragma region POINT CLASS
 
+
+
+
+
+//Point Functions
 Point POINT(int x, int y)
 {
 	return (Point){x, y};
@@ -79,7 +95,7 @@ Point POINT_Add(Point point1, Point point2)
 	return (Point){point1.x + point2.x, point1.y + point2.y};
 }
 
-int POINT_IsZero(Point point)
+int POINT_isZero(Point point)
 {
 	return (point.x == 0 && point.y == 0);
 }
@@ -106,51 +122,68 @@ int POINT_isPointInArray(Game *sys, Point p, int length, Point *arr)
 	return 0;
 }
 
-#pragma endregion
 
-#pragma region FUNCTION DEFINITIONS
 
-void PIECE_getAllMovesAbsolute(char* Board, Point* BufferSize50, Point piece, int antiRecursion, int isWhiteTurn, int whiteCastleKing);
-void PIECE_getAllMovesRelative(char piece, Point* buffer);
-int PIECE_getChessPieceValue(char piece);
-int PIECE_isInBoard(Point x);
-int PIECE_isThreat( char piece, int isWhiteTurn);
-void PIECE_makeMove(char* Board, Point Piece, Point Target);
 
-void BOARD_Print(Colors *colors, Game *sys);
-void BOARD_getAllCellsThatareDanger(char* Board, int searchWhite, Point* BufferSize128);
-int BOARD_ReadFEN(char* FEN, Game* sys);
 
-void CELL_PrintPreview(Game *sys);
-void CELL_ClearPreview(Game *sys);
-void CELL_AddToPreview(Point coords, Game *sys, int color);
-
-#pragma endregion
-
-#pragma region PIECE DICTIONARIES
-
-int PIECE_getChessPieceValue(char piece)
+//Cell Functions
+void CELL_AddToPreview(Point coords, Game* sys, int color)
 {
-	switch (toupper(piece))
+	sys->markedPos[sys->MarkedCellsCounter] = coords;
+	sys->markedPosCol[sys->MarkedCellsCounter++] = color;
+}
+
+void CELL_ClearPreview(Game* sys)
+{
+	for (size_t i = 0; i < 64; i++)
 	{
-	case 'P':
-		return 1;
-		break;
-	case 'N':
-		return 3;
-		break;
-	case 'B':
-		return 3;
-		break;
-	case 'R':
-		return 5;
-		break;
-	case 'Q':
-		return 9;
-		break;
+		sys->markedPos[i] = POINT(0, 0);
+	}
+	sys->MarkedCellsCounter = 0;
+}
+
+void CELL_PrintPreview(Game* sys)
+{
+	for (size_t i = 0; i < 64; i++)
+	{
+		if (POINT_isZero(sys->markedPos[i]))
+			return;
+
+		ENGINE_SetCursorPos(sys->markedPos[i]);
+
+		switch (sys->markedPosCol[i])
+		{
+		case 0:
+			ENGINE_SetBackgroundColor(44, 44, 233);
+			break;
+		case 1:
+			ENGINE_SetBackgroundColor(0, 255, 0);
+			break;
+		case 2:
+			ENGINE_SetBackgroundColor(0, 0, 255);
+			break;
+		}
+
+		int index = (sys->Scope.y - 1) * 8 + (sys->Scope.x - 1);
+		printf("%c", sys->Board[index]);
+		ENGINE_SetBackgroundColor(0, 0, 0);
+
+		ENGINE_SetCursorPos(sys->Cursor);
 	}
 }
 
+
+
+
+
+
+
+/// <summary>
+/// Copies the possible moves a piece can make relative to itself
+/// (Rooks relative moves are { 1 , 0 }{ -1 , 0 }{ 0 , 1 }{ 0 , -1 })
+/// </summary>
+/// <param name="piece"></param>
+/// <param name="bufferSize8"></param>
 void PIECE_getAllMovesRelative(char piece, Point* bufferSize8)
 {
 
@@ -210,8 +243,14 @@ void PIECE_getAllMovesRelative(char piece, Point* bufferSize8)
 	memcpy(bufferSize8, moves, sizeof(Point) * 8);
 }
 
-#pragma endregion
 
+/// <summary>
+/// returns true if the given piece is a threat to the currently playing player
+/// (PIECE_isThreat('r', 1) == 1)
+/// </summary>
+/// <param name="piece"></param>
+/// <param name="isWhiteTurn"></param>
+/// <returns></returns>
 int PIECE_isThreat(char piece, int isWhiteTurn)
 {
 	if (isWhiteTurn)
@@ -220,6 +259,14 @@ int PIECE_isThreat(char piece, int isWhiteTurn)
 		return (piece >= 'A' && piece <= 'Z');
 }
 
+
+
+/// <summary>
+/// Return 1 if given point is a valid position on board
+/// (Board in Point represantation in index 1)
+/// </summary>
+/// <param name="x"></param>
+/// <returns></returns>
 int PIECE_isInBoard(Point x)
 {
 	return (x.x >= 1 && x.x <= 8) && (x.y >= 1 && x.y <= 8);
@@ -233,7 +280,7 @@ int cmpfunc(const void* a, const void* b) {
 
 	return POINT_getIndex(s) < POINT_getIndex(ds);
 }
-void PIECE_getAllMovesAbsolute(char* Board, Point *BufferSize50, Point piece, int antiRecursion, int isWhiteTurn, int whiteCastleKing)
+void PIECE_getAllMovesAbsolute(char* Board, Point *BufferSize50, Point piece, int antiRecursion, int isWhiteTurn)
 {
 #define possibleMovesArrayLength 50
 
@@ -295,7 +342,13 @@ void PIECE_getAllMovesAbsolute(char* Board, Point *BufferSize50, Point piece, in
 			if (p2 != ' ' && PIECE_isInBoard(p2Point) && PIECE_isThreat(Board[POINT_getIndex(p2Point)], isWhiteTurn))
 				possibleMoves[pMCounter++] = p2Point;
 		}
-	} ////////////////////////////////////////////////////////////////////////////////////////////
+	} 
+
+
+
+
+
+
 	else if (inpt == 'K') 
 	{
 
@@ -318,31 +371,12 @@ void PIECE_getAllMovesAbsolute(char* Board, Point *BufferSize50, Point piece, in
 				possibleMoves[pMCounter++] = POINT(x, y);
 		}
 
-		 //Here possibleMoves Array has all position Kings can go to without considering the enmies pieces
-		//if (antiRecursion)
-		//{
-		//	Point EnemyTargetCells[64];
-		//	Point newOutput[30];
-		//	int newOutputCounter = 0;
-		//	for (size_t i = 0; i < 64; i++)
-		//	{
-		//		if (i < 30)
-		//			newOutput[i] = POINT(0, 0);
+	}
 
-		//		EnemyTargetCells[i] = POINT(0, 0);
-		//	}
 
-		//	BOARD_getAllCellsThatareDanger(Board, !isWhiteTurn, &EnemyTargetCells);
 
-		//	//castling
-		//	if (whiteCastleKing && Board[63] == 'R' && Board[60] == 'K')
-		//	{
-		//		possibleMoves[pMCounter++] = POINT(8, 8);
-		//	}
 
-		//}
 
-	} 
 
 	else if (inpt == 'N')
 	{
@@ -367,6 +401,12 @@ void PIECE_getAllMovesAbsolute(char* Board, Point *BufferSize50, Point piece, in
 		}
 	} 
 
+
+
+
+
+
+
 	else if (inpt == 'R' || inpt == 'Q' || inpt == 'B')
 	{
 
@@ -378,7 +418,7 @@ void PIECE_getAllMovesAbsolute(char* Board, Point *BufferSize50, Point piece, in
 
 			int x = piece.x + Moves[i].x;
 			int y = piece.y + Moves[i].y;
-			if (POINT_IsZero(Moves[i]))
+			if (POINT_isZero(Moves[i]))
 				continue;
 
 			while (Board[POINT_getIndex(POINT(x, y))] == ' ')
@@ -418,12 +458,20 @@ void PIECE_getAllMovesAbsolute(char* Board, Point *BufferSize50, Point piece, in
 
 	}
 
+
+
+
 	qsort(possibleMoves, pMCounter, sizeof(Point), cmpfunc);
 	memcpy(BufferSize50, possibleMoves, sizeof(Point) * possibleMovesArrayLength);
 
 
 	#undef possibleMovesArrayLength
 }
+
+
+
+
+
 
 void PIECE_makeMove(char* Board, Point Piece, Point Target)
 {
@@ -433,34 +481,7 @@ void PIECE_makeMove(char* Board, Point Piece, Point Target)
 }
 
 
-void BOARD_Print(Colors *colors, Game *sys)
-{
 
-	ENGINE_SetBackgroundColor(0, 0, 0);
-
-	for (size_t i = 0; i < 8; i++)
-	{
-		for (size_t j = 0; j < 8; j++)
-		{
-
-			int index = 8 * i + j;
-			// Draw Chess Pattern
-			// Modulo-part offsets every row by one
-			((8 * i + j) + (i % 2)) % 2 == 0 ? ENGINE_SetBackgroundColor(colors->DBoxColorR, colors->DBoxColorB, colors->DBoxColorB) : ENGINE_SetBackgroundColor(colors->LBoxColorR, colors->LBoxColorB, colors->LBoxColorB);
-
-			// Color Pieces
-			(islower(sys->Board[index])) ? ENGINE_SetForegroundColor(colors->DPieceColorR, colors->DPieceColorB, colors->DPieceColorB) : ENGINE_SetForegroundColor(colors->LPieceColorR, colors->LPieceColorB, colors->LPieceColorB);
-
-			printf("%c", sys->Board[index]);
-
-			// Reset Colors
-			ENGINE_SetForegroundColor(255, 255, 255);
-			ENGINE_SetBackgroundColor(0, 0, 0);
-		}
-
-		printf("\n");
-	}
-}
 
 int BOARD_ReadFEN(char* FEN, Game* sys)
 {
@@ -491,7 +512,58 @@ int BOARD_ReadFEN(char* FEN, Game* sys)
 
 
 
-void BOARD_getAllCellsThatareDanger(char* Board, int searchWhite, Point* BufferSize128)
+
+
+void BOARD_Print(Game *sys)
+{
+
+	ENGINE_SetBackgroundColor(0, 0, 0);
+
+	int DBoxColorR = 136;
+	int DBoxColorG = 119;
+	int DBoxColorB = 183;
+
+	int LBoxColorR = 233;
+	int LBoxColorG = 4;
+	int LBoxColorB = 33;
+
+	int DPieceColorR = 0;
+	int DPieceColorG = 0;
+	int DPieceColorB = 0;
+
+	int LPieceColorR = 255;
+	int LPieceColorG = 255;
+	int LPieceColorB = 255;
+
+	for (size_t i = 0; i < 8; i++)
+	{
+		for (size_t j = 0; j < 8; j++)
+		{
+
+			int index = 8 * i + j;
+			// Draw Chess Pattern
+			// Modulo-part offsets every row by one
+			((8 * i + j) + (i % 2)) % 2 == 0 ? ENGINE_SetBackgroundColor(DBoxColorR, DBoxColorB, DBoxColorB) : ENGINE_SetBackgroundColor(LBoxColorR, LBoxColorB, LBoxColorB);
+
+			// Color Pieces
+			(islower(sys->Board[index])) ? ENGINE_SetForegroundColor(DPieceColorR, DPieceColorB, DPieceColorB) : ENGINE_SetForegroundColor(LPieceColorR, LPieceColorB, LPieceColorB);
+
+			printf("%c", sys->Board[index]);
+
+			// Reset Colors
+			ENGINE_SetForegroundColor(255, 255, 255);
+			ENGINE_SetBackgroundColor(0, 0, 0);
+		}
+
+		printf("\n");
+	}
+}
+
+
+
+
+
+void BOARD_getAllCellsThatareDanger(char* Board, int searchWhite, Point* BufferSize64)
 {
 	Point possibleMove[128];
 
@@ -506,43 +578,41 @@ void BOARD_getAllCellsThatareDanger(char* Board, int searchWhite, Point* BufferS
 	for (size_t i = 1; i < 9; i++)
 		for (size_t j = 1; j < 9; j++)
 		{
-			
-			if (1)
+
+			if (Board[POINT_getIndex(POINT(i, j))] != ' ' && PIECE_isThreat( Board[POINT_getIndex(POINT(i, j))], !searchWhite))
 			{
-				if (Board[POINT_getIndex(POINT(i, j))] != ' ' && PIECE_isThreat( Board[POINT_getIndex(POINT(i, j))], !searchWhite))
+
+				Point arr[50];
+				PIECE_getAllMovesAbsolute(Board, &arr, POINT(i, j), 0, searchWhite);
+
+				if (Board[POINT_getIndex(POINT(i, j))] != test)
 				{
 
-					Point arr[50];
-					PIECE_getAllMovesAbsolute(Board, &arr, POINT(i, j), 0, searchWhite, 0);
-
-					if (Board[POINT_getIndex(POINT(i, j))] != test)
+					for (size_t d = 0; d < 50; d++)
 					{
-
-						for (size_t d = 0; d < 50; d++)
+						if (POINT_isZero(arr[d]))
 						{
-							if (POINT_IsZero(arr[d]))
-							{
-								break;
-							}
-							possibleMove[counter++] = arr[d];
+							break;
 						}
+						possibleMove[counter++] = arr[d];
 					}
+				}
 
-					else if (Board[POINT_getIndex(POINT(i, j))] == test)
+				else if (Board[POINT_getIndex(POINT(i, j))] == test)
+				{
+					int x1 = i + 1, y1 = j + (searchWhite ? -1 : 1);
+					if (PIECE_isInBoard(POINT(x1, y1)))
 					{
-						int x1 = i + 1, y1 = j + (searchWhite ? -1 : 1);
-						if (PIECE_isInBoard(POINT(x1, y1)))
-						{
-							possibleMove[counter++] = POINT(x1, y1);
-						}
-						int x2 = i - 1, y2 = j + (searchWhite ? -1 : 1);
-						if (PIECE_isInBoard(POINT(x2, y2)))
-						{
-							possibleMove[counter++] = POINT(x2, y2);
-						}
+						possibleMove[counter++] = POINT(x1, y1);
+					}
+					int x2 = i - 1, y2 = j + (searchWhite ? -1 : 1);
+					if (PIECE_isInBoard(POINT(x2, y2)))
+					{
+						possibleMove[counter++] = POINT(x2, y2);
 					}
 				}
 			}
+			
 
 		}
 
@@ -569,7 +639,7 @@ void BOARD_getAllCellsThatareDanger(char* Board, int searchWhite, Point* BufferS
 			possibleMove[i] = POINT(0, 0);
 	}
 
-	memcpy(BufferSize128, possibleMove, sizeof(Point) * 64);
+	memcpy(BufferSize64, possibleMove, sizeof(Point) * 64);
 }
 
 int BOARD_isKingInCheck(char* Board, int isWhiteTurn)
@@ -602,74 +672,13 @@ int BOARD_isKingInCheck(char* Board, int isWhiteTurn)
 	return 0;
 }
 
-void CELL_AddToPreview(Point coords, Game *sys, int color)
-{
-	sys->markedPos[sys->MarkedCellsCounter] = coords;
-	sys->markedPosCol[sys->MarkedCellsCounter++] = color;
-}
 
-void CELL_ClearPreview(Game *sys)
-{
-	for (size_t i = 0; i < 64; i++)
-	{
-		sys->markedPos[i] = POINT(0, 0);
-	}
-	sys->MarkedCellsCounter = 0;
-}
-
-void CELL_PrintPreview(Game *sys)
-{
-	for (size_t i = 0; i < 64; i++)
-	{
-		if (POINT_IsZero(sys->markedPos[i]))
-			return;
-
-		ENGINE_SetCursorPos(sys->markedPos[i]);
-
-		switch (sys->markedPosCol[i])
-		{
-		case 0:
-			ENGINE_SetBackgroundColor(44, 44, 233);
-			break;
-		case 1:
-			ENGINE_SetBackgroundColor(0, 255, 0);
-			break;
-		case 2:
-			ENGINE_SetBackgroundColor(0, 0, 255);
-			break;
-		}
-
-		int index = (sys->Scope.y - 1) * 8 + (sys->Scope.x - 1);
-		printf("%c", sys->Board[index]);
-		ENGINE_SetBackgroundColor(0, 0, 0);
-
-		ENGINE_SetCursorPos(sys->Cursor);
-	}
-}
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 int main()
 {
 	Game *sys = malloc(sizeof(Game));
-	Colors *SysCol = malloc(sizeof(Colors));
-
-	// Configure Game Colors
-	SysCol->DBoxColorR = 136;
-	SysCol->DBoxColorG = 119;
-	SysCol->DBoxColorB = 183;
-
-	SysCol->LBoxColorR = 233;
-	SysCol->LBoxColorG = 4;
-	SysCol->LBoxColorB = 33;
-
-	SysCol->DPieceColorR = 0;
-	SysCol->DPieceColorG = 0;
-	SysCol->DPieceColorB = 0;
-
-	SysCol->LPieceColorR = 255;
-	SysCol->LPieceColorG = 255;
-	SysCol->LPieceColorB = 255;
 
 	// Configure Game Settings
 	sys->Cursor = POINT(1, 1);
@@ -684,10 +693,6 @@ int main()
 	CELL_ClearPreview(sys);
 	sys->Scope = POINT(0, 0);
 
-	sys->castleWhiteQueenSide = 1;
-	sys->castleWhiteKingSide = 1;
-	sys->castleBlackQueenSide = 1;
-	sys->castleBlackKingSide = 1;
 
 	BOARD_ReadFEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w", sys);
 	// rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR
@@ -696,10 +701,10 @@ int main()
 	{
 		int index = (sys->Cursor.x - 1) + (sys->Cursor.y - 1) * 8;
 
-		BOARD_Print(SysCol, sys);
+		BOARD_Print(sys);
 
 		ENGINE_SetCursorPos(sys->Cursor);
-
+		
 		CELL_PrintPreview(sys);
 		
 		
@@ -708,7 +713,6 @@ int main()
 
 		switch (ctrl)
 		{
-		// Note: Cursor pos is "enforced" in the next iteration
 		case 'w':
 			if (sys->Cursor.y > 1)
 				sys->Cursor.y--;
@@ -728,17 +732,17 @@ int main()
 		case '\r':
 
 			// Cant click on opponents piece if scope is zero
-			if (POINT_IsZero(sys->Scope) &&
+			if (POINT_isZero(sys->Scope) &&
 				sys->isWhiteTurn &&
 				islower(sys->Board[POINT_getIndex(sys->Cursor)]))
 				break;
-			if (POINT_IsZero(sys->Scope) &&
+			if (POINT_isZero(sys->Scope) &&
 				!sys->isWhiteTurn &&
 				isupper(sys->Board[POINT_getIndex(sys->Cursor)]))
 				break;
 
 			// if no piece is selected, select one
-			if (POINT_IsZero(sys->Scope) && sys->Board[index] != ' ')
+			if (POINT_isZero(sys->Scope) && sys->Board[index] != ' ')
 			{
 				sys->Scope = sys->Cursor;
 
@@ -747,13 +751,13 @@ int main()
 				Point *mov = malloc(64 * sizeof(Point));
 
 				//get all absolute positions possible for the currently playing
-				PIECE_getAllMovesAbsolute(sys->Board, mov, sys->Scope, 1, sys->isWhiteTurn, sys->castleWhiteKingSide);
+				PIECE_getAllMovesAbsolute(sys->Board, mov, sys->Scope, 1, sys->isWhiteTurn);
 
 				CELL_AddToPreview(sys->Scope, sys, 1);
 
 				for (size_t i = 0; i < 64; i++)
 				{
-					if (POINT_IsZero(mov[i]))
+					if (POINT_isZero(mov[i]))
 						break;
 
 					PIECE_isThreat(sys->Board[POINT_getIndex(mov[i])], sys->isWhiteTurn) ? CELL_AddToPreview(mov[i], sys, 3) : CELL_AddToPreview(mov[i], sys, 2);
@@ -768,7 +772,7 @@ int main()
 				CELL_ClearPreview(sys);
 			}
 			// If Piece is selected, not same as Scope and in markedCells move and change turns
-			else if (!POINT_IsZero(sys->Scope) && !POINT_equals(sys->Scope, sys->Cursor) && POINT_isPointInArray(sys, sys->Cursor, sys->MarkedCellsCounter, sys->markedPos))
+			else if (!POINT_isZero(sys->Scope) && !POINT_equals(sys->Scope, sys->Cursor) && POINT_isPointInArray(sys, sys->Cursor, sys->MarkedCellsCounter, sys->markedPos))
 			{
 				PIECE_makeMove(&sys->Board, sys->Scope, sys->Cursor);
 				sys->Scope = POINT(0, 0);
