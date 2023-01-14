@@ -59,6 +59,8 @@ void ENGINE_SetBackgroundColor(int R, int G, int B);
 void ENGINE_SetForegroundColor(int R, int G, int B);
 void ENGINE_SetCursorPos(Point coords);
 
+int testBoard(char* Board);
+
 
 int main()
 {
@@ -81,24 +83,8 @@ int main()
 	BOARD_ReadFEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w", sys);
 	// rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR
 
-
-	//Code to Test board
-	int depth = 0;
-	int wTurn = 1;
-	while (depth)
-	{
-		for (int i = 1; i < 9; i++)
-			for (int j = 1; j < 9; j++)
-			{
-				if (!PIECE_isThreat(sys->Board[POINT_getIndex(POINT(i, j))], wTurn))
-				{
-
-				}
-			}
-
-		depth--;
-	}
-
+	//This part tests using Perft
+	//printf("%i", testBoard(sys->Board, 1, 4));
 
 	while (1)
 	{
@@ -765,4 +751,44 @@ int BOARD_isKingInCheck(char* Board, int isWhiteTurn)
 	}
 
 	return 0;
+}
+
+
+
+
+int testBoard(char* Board, int wTurn, int depth)
+{
+
+	//Code to Test board
+	if (depth == 0)
+		return 1;
+
+	int counter = 0;
+
+	for (int i = 1; i < 9; i++)
+		for (int j = 1; j < 9; j++)
+		{
+			if (!PIECE_isThreat(Board[POINT_getIndex(POINT(i, j))], wTurn) && Board[POINT_getIndex(POINT(i, j))] != ' ')
+			{
+				Point Buf[50];
+				PIECE_getAllMovesAbsolute(Board, Buf, POINT(i, j), 1, wTurn);
+
+				for (size_t i = 0; i < 50; i++)
+				{
+					if (POINT_isZero(Buf[i]))
+						break;
+
+					char x[64];
+					memcpy(x, Board, 64);
+
+					PIECE_makeMove(Board, POINT(i, j), Buf[i]);
+					counter += testBoard(Board, !wTurn, depth - 1);
+
+					memcpy(Board, x, 64);
+
+				}
+			}
+		}
+
+	return counter;
 }
