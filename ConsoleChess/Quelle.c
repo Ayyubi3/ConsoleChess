@@ -37,7 +37,7 @@ int PIECE_isThreat(char piece, int isWhiteTurn);
 void PIECE_makeMove(char* Board, Point Piece, Point Target);
 
 void BOARD_Print(char* Board);
-void BOARD_getAllCellsThatareDanger(char* Board, int searchWhite, Point* BufferSize128);
+void BOARD_getAllCellsDanger(char* Board, int searchWhite, Point* BufferSize128);
 int BOARD_ReadFEN(char* FEN, Game* sys);
 
 void CELL_PrintPreview(Game* sys);
@@ -80,6 +80,25 @@ int main()
 
 	BOARD_ReadFEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w", sys);
 	// rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR
+
+
+	//Code to Test board
+	int depth = 0;
+	int wTurn = 1;
+	while (depth)
+	{
+		for (int i = 1; i < 9; i++)
+			for (int j = 1; j < 9; j++)
+			{
+				if (!PIECE_isThreat(sys->Board[POINT_getIndex(POINT(i, j))], wTurn))
+				{
+
+				}
+			}
+
+		depth--;
+	}
+
 
 	while (1)
 	{
@@ -456,27 +475,6 @@ void PIECE_getAllMovesAbsolute(char* Board, Point *BufferSize50, Point piece, in
 		}
 		break;
 	case 'K':
-	{
-		Point Moves[8];
-		PIECE_getAllMovesRelative(inpt, &Moves);
-
-		for (size_t i = 0; i < 8; i++)
-		{
-
-			// Calculate next cell
-			int x = piece.x + Moves[i].x;
-			int y = piece.y + Moves[i].y;
-
-			if (!PIECE_isInBoard(POINT(x, y))) // if out of bound: kill iteration
-				continue;
-
-			if (Board[POINT_getIndex(POINT(x, y))] == ' ') // If cell is empty move should be safe todo. NOTE: might cause problems with king later
-				possibleMoves[pMCounter++] = POINT(x, y);
-			else if (PIECE_isThreat(Board[POINT_getIndex(POINT(x, y))], isWhiteTurn)) // If Cell is threat mark it. NOTE: maybe change that later so the dangered pieces are in a different array
-				possibleMoves[pMCounter++] = POINT(x, y);
-		}
-	}
-		break;
 	case 'N':
 	{
 		Point Moves[8];
@@ -532,9 +530,6 @@ void PIECE_getAllMovesAbsolute(char* Board, Point *BufferSize50, Point piece, in
 		}
 	}
 		break;
-
-	default:
-		break;
 	}
 
 
@@ -558,9 +553,6 @@ void PIECE_getAllMovesAbsolute(char* Board, Point *BufferSize50, Point piece, in
 
 	}
 
-
-
-
 	qsort(possibleMoves, pMCounter, sizeof(Point), cmpfunc);
 	memcpy(BufferSize50, possibleMoves, sizeof(Point) * possibleMovesArrayLength);
 
@@ -579,8 +571,6 @@ void PIECE_makeMove(char* Board, Point Piece, Point Target)
 	Board[POINT_getIndex(Target)] = Board[ScopeIndex];
 	Board[ScopeIndex] = ' ';
 }
-
-
 
 
 int BOARD_ReadFEN(char* FEN, Game* sys)
@@ -609,8 +599,6 @@ int BOARD_ReadFEN(char* FEN, Game* sys)
 
 	sys->isWhiteTurn = FEN[++i] == 'w';
 }
-
-
 
 
 
@@ -662,8 +650,14 @@ void BOARD_Print(char* Board)
 
 
 
-
-void BOARD_getAllCellsThatareDanger(char* Board, int searchWhite, Point* BufferSize64)
+/// <summary>
+/// Returns all the endangered cells
+/// (The Cell infront of a pawn is not endangered)
+/// </summary>
+/// <param name="Board"></param>
+/// <param name="searchWhite"></param>
+/// <param name="BufferSize64"></param>
+void BOARD_getAllCellsDanger(char* Board, int searchWhite, Point* BufferSize64)
 {
 	Point possibleMove[128];
 
@@ -742,10 +736,11 @@ void BOARD_getAllCellsThatareDanger(char* Board, int searchWhite, Point* BufferS
 	memcpy(BufferSize64, possibleMove, sizeof(Point) * 64);
 }
 
+
 int BOARD_isKingInCheck(char* Board, int isWhiteTurn)
 {
 	Point buff[64];
-	BOARD_getAllCellsThatareDanger(Board, !isWhiteTurn, &buff);
+	BOARD_getAllCellsDanger(Board, !isWhiteTurn, &buff);
 
 	char target = isWhiteTurn ? 'K' : 'k';
 	int targetIndex = 0;
