@@ -404,93 +404,59 @@ void PIECE_getAllMovesAbsolute(char* Board, Point *BufferSize50, Point piece, in
 		possibleMoves[i] = POINT(0, 0);
 
 
-	if (inpt == 'P')
+	switch (inpt)
 	{
-
-		Point Moves[8];
-		PIECE_getAllMovesRelative(inpt, &Moves);
-
-		for (size_t i = 0; i < 8; i++)
+		case 'P':
 		{
+			Point Moves[8];
+			PIECE_getAllMovesRelative(inpt, &Moves);
 
-			// Invert Move for Pawn(Other Pieces are independet of whos turn it is)
-			isWhiteTurn ? (Moves[i].y = Moves[i].y) : (Moves[i].y = -Moves[i].y);
+			for (size_t i = 0; i < 8; i++)
+			{
 
-			// Pawn: If already moved dont add +2 movement
-			if (!(
+				// Invert Move for Pawn(Other Pieces are independet of whos turn it is)
+				isWhiteTurn ? (Moves[i].y = Moves[i].y) : (Moves[i].y = -Moves[i].y);
+
+				// Pawn: If already moved dont add +2 movement
+				if (!(
 					((piece.y == 7 && isWhiteTurn) ||
-					 (piece.y == 2 && !isWhiteTurn))) &&
-				i == 1)
-				continue;
+						(piece.y == 2 && !isWhiteTurn))) &&
+					i == 1)
+					continue;
 
-			// Calculate next cell
-			int x = piece.x + Moves[i].x;
-			int y = piece.y + Moves[i].y;
+				// Calculate next cell
+				int x = piece.x + Moves[i].x;
+				int y = piece.y + Moves[i].y;
 
-			if (!PIECE_isInBoard(POINT(x, y))) // if out of bound: kill iteration
-				continue;
+				if (!PIECE_isInBoard(POINT(x, y))) // if out of bound: kill iteration
+					continue;
 
-			if (Board[POINT_getIndex(POINT(x, y))] == ' ') // If cell is empty move should be safe todo. NOTE: might cause problems with king later
-				possibleMoves[pMCounter++] = POINT(x, y);
+				if (Board[POINT_getIndex(POINT(x, y))] == ' ') // If cell is empty move should be safe todo. NOTE: might cause problems with king later
+					possibleMoves[pMCounter++] = POINT(x, y);
 
-			// Pawns movement
-			int offsetMultiplier;
-			isWhiteTurn ? (offsetMultiplier = -1) : (offsetMultiplier = 1);
+				// Pawns movement
+				int offsetMultiplier;
+				isWhiteTurn ? (offsetMultiplier = -1) : (offsetMultiplier = 1);
 
-			Point offset1 = POINT(1, offsetMultiplier);
-			Point offset2 = POINT(-1, offsetMultiplier);
+				Point offset1 = POINT(1, offsetMultiplier);
+				Point offset2 = POINT(-1, offsetMultiplier);
 
-			Point p1Point = POINT_Add(piece, offset1);
-			Point p2Point = POINT_Add(piece, offset2);
+				Point p1Point = POINT_Add(piece, offset1);
+				Point p2Point = POINT_Add(piece, offset2);
 
-			char p1 = Board[POINT_getIndex(p1Point)];
-			char p2 = Board[POINT_getIndex(p2Point)];
+				char p1 = Board[POINT_getIndex(p1Point)];
+				char p2 = Board[POINT_getIndex(p2Point)];
 
-			if (p1 != ' ' && PIECE_isInBoard(p1Point) && PIECE_isThreat(Board[POINT_getIndex(p1Point)], isWhiteTurn))
-				possibleMoves[pMCounter++] = p1Point;
+				if (p1 != ' ' && PIECE_isInBoard(p1Point) && PIECE_isThreat(Board[POINT_getIndex(p1Point)], isWhiteTurn))
+					possibleMoves[pMCounter++] = p1Point;
 
-			if (p2 != ' ' && PIECE_isInBoard(p2Point) && PIECE_isThreat(Board[POINT_getIndex(p2Point)], isWhiteTurn))
-				possibleMoves[pMCounter++] = p2Point;
+				if (p2 != ' ' && PIECE_isInBoard(p2Point) && PIECE_isThreat(Board[POINT_getIndex(p2Point)], isWhiteTurn))
+					possibleMoves[pMCounter++] = p2Point;
+			}
 		}
-	} 
-
-
-
-
-
-
-	else if (inpt == 'K') 
+		break;
+	case 'K':
 	{
-
-		Point Moves[8];
-		PIECE_getAllMovesRelative(inpt, &Moves);
-
-		for (size_t i = 0; i < 8; i++)
-		{
-
-			// Calculate next cell
-			int x = piece.x + Moves[i].x;
-			int y = piece.y + Moves[i].y;
-
-			if (!PIECE_isInBoard(POINT(x, y))) // if out of bound: kill iteration
-				continue;
-
-			if (Board[POINT_getIndex(POINT(x, y))] == ' ') // If cell is empty move should be safe todo. NOTE: might cause problems with king later
-				possibleMoves[pMCounter++] = POINT(x, y);
-			else if (PIECE_isThreat( Board[POINT_getIndex(POINT(x, y))], isWhiteTurn)) // If Cell is threat mark it. NOTE: maybe change that later so the dangered pieces are in a different array
-				possibleMoves[pMCounter++] = POINT(x, y);
-		}
-
-	}
-
-
-
-
-
-
-	else if (inpt == 'N')
-	{
-
 		Point Moves[8];
 		PIECE_getAllMovesRelative(inpt, &Moves);
 
@@ -509,15 +475,33 @@ void PIECE_getAllMovesAbsolute(char* Board, Point *BufferSize50, Point piece, in
 			else if (PIECE_isThreat(Board[POINT_getIndex(POINT(x, y))], isWhiteTurn)) // If Cell is threat mark it. NOTE: maybe change that later so the dangered pieces are in a different array
 				possibleMoves[pMCounter++] = POINT(x, y);
 		}
-	} 
+	}
+		break;
+	case 'N':
+	{
+		Point Moves[8];
+		PIECE_getAllMovesRelative(inpt, &Moves);
 
+		for (size_t i = 0; i < 8; i++)
+		{
 
+			// Calculate next cell
+			int x = piece.x + Moves[i].x;
+			int y = piece.y + Moves[i].y;
 
+			if (!PIECE_isInBoard(POINT(x, y))) // if out of bound: kill iteration
+				continue;
 
-
-
-
-	else if (inpt == 'R' || inpt == 'Q' || inpt == 'B')
+			if (Board[POINT_getIndex(POINT(x, y))] == ' ') // If cell is empty move should be safe todo. NOTE: might cause problems with king later
+				possibleMoves[pMCounter++] = POINT(x, y);
+			else if (PIECE_isThreat(Board[POINT_getIndex(POINT(x, y))], isWhiteTurn)) // If Cell is threat mark it. NOTE: maybe change that later so the dangered pieces are in a different array
+				possibleMoves[pMCounter++] = POINT(x, y);
+		}
+	}
+		break;
+	case 'R':
+	case 'Q':
+	case 'B':
 	{
 
 		Point Moves[8];
@@ -547,6 +531,12 @@ void PIECE_getAllMovesAbsolute(char* Board, Point *BufferSize50, Point piece, in
 				possibleMoves[pMCounter++] = POINT(x, y);
 		}
 	}
+		break;
+
+	default:
+		break;
+	}
+
 
 	if (antiRecursion)
 	{
