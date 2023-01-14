@@ -9,11 +9,6 @@
 #pragma warning(disable : 4996)
 
 
-
-
-
-
-
 typedef struct { int x; int y; } Point;
 
 typedef struct
@@ -35,18 +30,13 @@ typedef struct
 
 } Game;
 
-
-
-
-
-
 void PIECE_getAllMovesAbsolute(char* Board, Point* BufferSize50, Point piece, int antiRecursion, int isWhiteTurn);
 void PIECE_getAllMovesRelative(char piece, Point* buffer);
 int PIECE_isInBoard(Point x);
 int PIECE_isThreat(char piece, int isWhiteTurn);
 void PIECE_makeMove(char* Board, Point Piece, Point Target);
 
-void BOARD_Print(Game* sys);
+void BOARD_Print(char* Board);
 void BOARD_getAllCellsThatareDanger(char* Board, int searchWhite, Point* BufferSize128);
 int BOARD_ReadFEN(char* FEN, Game* sys);
 
@@ -54,15 +44,148 @@ void CELL_PrintPreview(Game* sys);
 void CELL_ClearPreview(Game* sys);
 void CELL_AddToPreview(Point coords, Game* sys, int color);
 
+void ENGINE_SetBackgroundColor(int R, int G, int B);
+void ENGINE_SetForegroundColor(int R, int G, int B);
+void ENGINE_SetCursorPos(Point coords);
+
+Point POINT(int x, int y);
+Point POINT_Add(Point point1, Point point2);
+int POINT_isZero(Point point);
+int POINT_equals(Point point1, Point point2);
+int POINT_getIndex(Point p); 
+int POINT_isPointInArray(Game* sys, Point p, int length, Point* arr);
+
+void ENGINE_SetBackgroundColor(int R, int G, int B);
+void ENGINE_SetForegroundColor(int R, int G, int B);
+void ENGINE_SetCursorPos(Point coords);
+
+
+int main()
+{
+	Game* sys = malloc(sizeof(Game));
+
+	//Set Point index to 1,1
+	sys->Cursor = POINT(1, 1);
+
+	// clear everything before start, just because
+	for (size_t i = 0; i < 64; i++)
+	{
+		sys->Board[i] = ' ';
+		sys->markedPos[i] = POINT(0, 0);
+	}
+	CELL_ClearPreview(sys);
+	sys->Scope = POINT(0, 0);
+	printf("\033[H\033[J");
+
+
+	BOARD_ReadFEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w", sys);
+	// rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR
+
+	while (1)
+	{
+		BOARD_Print(sys->Board);
+
+		ENGINE_SetCursorPos(sys->Cursor);
+
+		CELL_PrintPreview(sys);
 
 
 
+		char ctrl = getch();
+
+		switch (ctrl)
+		{
+		case 'q':
+			printf("\033[H\033[J");
+			exit(0);
+			break;
+		case 'w':
+			if (sys->Cursor.y > 1)
+				sys->Cursor.y--;
+			break;
+		case 'a':
+			if (sys->Cursor.x > 1)
+				sys->Cursor.x--;
+			break;
+		case 's':
+			if (sys->Cursor.y < 8)
+				sys->Cursor.y++;
+			break;
+		case 'd':
+			if (sys->Cursor.x < 8)
+				sys->Cursor.x++;
+			break;
+
+		case '\r':
+			
+			// Cant click on opponents piece if scope is zero
+			if (POINT_isZero(sys->Scope) &&
+				sys->isWhiteTurn &&
+				islower(sys->Board[POINT_getIndex(sys->Cursor)]))
+				break;
+			if (POINT_isZero(sys->Scope) &&
+				!sys->isWhiteTurn &&
+				isupper(sys->Board[POINT_getIndex(sys->Cursor)]))
+				break;
 
 
 
+			// if no piece is selected, select one
+			if (POINT_isZero(sys->Scope) && sys->Board[POINT_getIndex(sys->Cursor)] != ' ')
+			{
+				sys->Scope = sys->Cursor;
+
+				CELL_ClearPreview(sys);
+
+				Point* mov = malloc(64 * sizeof(Point));
+
+				//get all absolute positions possible for the currently playing
+				PIECE_getAllMovesAbsolute(sys->Board, mov, sys->Scope, 1, sys->isWhiteTurn);
+
+				CELL_AddToPreview(sys->Scope, sys, 1);
+
+				for (size_t i = 0; i < 64; i++)
+				{
+					if (POINT_isZero(mov[i]))
+						break;
+
+					//Change Cell color according to the pieces owner
+					PIECE_isThreat(sys->Board[POINT_getIndex(mov[i])], sys->isWhiteTurn) ? 
+						CELL_AddToPreview(mov[i], sys, 3) : 
+						CELL_AddToPreview(mov[i], sys, 2);
+				}
+
+				free(mov);
+			}
 
 
+			// if its the same piece selected prior, unselect it
+			else if (POINT_equals(sys->Scope, sys->Cursor))
+			{
+				sys->Scope = POINT(0, 0);
+				CELL_ClearPreview(sys);
+			}
 
+
+			// If Piece is selected, not same as Scope and in markedCells move and change turns
+			else if (!POINT_isZero(sys->Scope) && !POINT_equals(sys->Scope, sys->Cursor) && POINT_isPointInArray(sys, sys->Cursor, sys->MarkedCellsCounter, sys->markedPos))
+			{
+				PIECE_makeMove(&sys->Board, sys->Scope, sys->Cursor);
+				sys->Scope = POINT(0, 0);
+
+				CELL_ClearPreview(sys);
+
+				sys->isWhiteTurn = !sys->isWhiteTurn;
+			}
+			break;
+		}
+		ENGINE_SetCursorPos(POINT(0, 0));
+	}
+
+}
+
+
+//Engine
 void ENGINE_SetBackgroundColor(int R, int G, int B)
 {
 	printf("\x1b[48;2;%i;%i;%im", R, G, B);
@@ -78,13 +201,7 @@ void ENGINE_SetCursorPos(Point coords)
 	printf("\033[%d;%dH", coords.y, coords.x);
 }
 
-
-
-
-
-
-
-//Point Functions
+//Point
 Point POINT(int x, int y)
 {
 	return (Point){x, y};
@@ -123,10 +240,7 @@ int POINT_isPointInArray(Game *sys, Point p, int length, Point *arr)
 }
 
 
-
-
-
-//Cell Functions
+//Cell
 void CELL_AddToPreview(Point coords, Game* sys, int color)
 {
 	sys->markedPos[sys->MarkedCellsCounter] = coords;
@@ -171,11 +285,6 @@ void CELL_PrintPreview(Game* sys)
 		ENGINE_SetCursorPos(sys->Cursor);
 	}
 }
-
-
-
-
-
 
 
 /// <summary>
@@ -280,6 +389,7 @@ int cmpfunc(const void* a, const void* b) {
 
 	return POINT_getIndex(s) < POINT_getIndex(ds);
 }
+
 void PIECE_getAllMovesAbsolute(char* Board, Point *BufferSize50, Point piece, int antiRecursion, int isWhiteTurn)
 {
 #define possibleMovesArrayLength 50
@@ -514,7 +624,7 @@ int BOARD_ReadFEN(char* FEN, Game* sys)
 
 
 
-void BOARD_Print(Game *sys)
+void BOARD_Print(char* Board)
 {
 
 	ENGINE_SetBackgroundColor(0, 0, 0);
@@ -546,9 +656,9 @@ void BOARD_Print(Game *sys)
 			((8 * i + j) + (i % 2)) % 2 == 0 ? ENGINE_SetBackgroundColor(DBoxColorR, DBoxColorB, DBoxColorB) : ENGINE_SetBackgroundColor(LBoxColorR, LBoxColorB, LBoxColorB);
 
 			// Color Pieces
-			(islower(sys->Board[index])) ? ENGINE_SetForegroundColor(DPieceColorR, DPieceColorB, DPieceColorB) : ENGINE_SetForegroundColor(LPieceColorR, LPieceColorB, LPieceColorB);
+			(islower(Board[index])) ? ENGINE_SetForegroundColor(DPieceColorR, DPieceColorB, DPieceColorB) : ENGINE_SetForegroundColor(LPieceColorR, LPieceColorB, LPieceColorB);
 
-			printf("%c", sys->Board[index]);
+			printf("%c", Board[index]);
 
 			// Reset Colors
 			ENGINE_SetForegroundColor(255, 255, 255);
@@ -670,121 +780,4 @@ int BOARD_isKingInCheck(char* Board, int isWhiteTurn)
 	}
 
 	return 0;
-}
-
-
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-int main()
-{
-	Game *sys = malloc(sizeof(Game));
-
-	// Configure Game Settings
-	sys->Cursor = POINT(1, 1);
-
-	// clear everything before start, just because
-	for (size_t i = 0; i < 64; i++)
-	{
-		sys->Board[i] = ' ';
-		sys->markedPos[i] = POINT(0, 0);
-	}
-
-	CELL_ClearPreview(sys);
-	sys->Scope = POINT(0, 0);
-
-
-	BOARD_ReadFEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w", sys);
-	// rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR
-
-	while (1)
-	{
-		int index = (sys->Cursor.x - 1) + (sys->Cursor.y - 1) * 8;
-
-		BOARD_Print(sys);
-
-		ENGINE_SetCursorPos(sys->Cursor);
-		
-		CELL_PrintPreview(sys);
-		
-		
-
-		char ctrl = getch();
-
-		switch (ctrl)
-		{
-		case 'w':
-			if (sys->Cursor.y > 1)
-				sys->Cursor.y--;
-			break;
-		case 'a':
-			if (sys->Cursor.x > 1)
-				sys->Cursor.x--;
-			break;
-		case 's':
-			if (sys->Cursor.y < 8)
-				sys->Cursor.y++;
-			break;
-		case 'd':
-			if (sys->Cursor.x < 8)
-				sys->Cursor.x++;
-			break;
-		case '\r':
-
-			// Cant click on opponents piece if scope is zero
-			if (POINT_isZero(sys->Scope) &&
-				sys->isWhiteTurn &&
-				islower(sys->Board[POINT_getIndex(sys->Cursor)]))
-				break;
-			if (POINT_isZero(sys->Scope) &&
-				!sys->isWhiteTurn &&
-				isupper(sys->Board[POINT_getIndex(sys->Cursor)]))
-				break;
-
-			// if no piece is selected, select one
-			if (POINT_isZero(sys->Scope) && sys->Board[index] != ' ')
-			{
-				sys->Scope = sys->Cursor;
-
-				CELL_ClearPreview(sys);
-
-				Point *mov = malloc(64 * sizeof(Point));
-
-				//get all absolute positions possible for the currently playing
-				PIECE_getAllMovesAbsolute(sys->Board, mov, sys->Scope, 1, sys->isWhiteTurn);
-
-				CELL_AddToPreview(sys->Scope, sys, 1);
-
-				for (size_t i = 0; i < 64; i++)
-				{
-					if (POINT_isZero(mov[i]))
-						break;
-
-					PIECE_isThreat(sys->Board[POINT_getIndex(mov[i])], sys->isWhiteTurn) ? CELL_AddToPreview(mov[i], sys, 3) : CELL_AddToPreview(mov[i], sys, 2);
-				}
-
-				free(mov);
-			}
-			// if its the same piece selected prior, unselect it
-			else if (POINT_equals(sys->Scope, sys->Cursor))
-			{
-				sys->Scope = POINT(0, 0);
-				CELL_ClearPreview(sys);
-			}
-			// If Piece is selected, not same as Scope and in markedCells move and change turns
-			else if (!POINT_isZero(sys->Scope) && !POINT_equals(sys->Scope, sys->Cursor) && POINT_isPointInArray(sys, sys->Cursor, sys->MarkedCellsCounter, sys->markedPos))
-			{
-				PIECE_makeMove(&sys->Board, sys->Scope, sys->Cursor);
-				sys->Scope = POINT(0, 0);
-
-				CELL_ClearPreview(sys);
-
-				sys->isWhiteTurn = !sys->isWhiteTurn;
-			}
-			break;
-		}
-		// printf("\033[H\033[J");//vllt optimieren anstatt console clearen einfach array �berschreiben
-		ENGINE_SetCursorPos(POINT(0, 0));
-	}
-	// return 0;
 }
