@@ -5,8 +5,8 @@
 #include <ctype.h>
 
 #include "Game.h"
-#include "Engine.h"
 #include "Point.h"
+#include "Engine.h"
 
 
 // Dont know what this is, but prevents warnings to stop compilation
