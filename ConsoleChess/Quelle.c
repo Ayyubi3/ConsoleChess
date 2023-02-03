@@ -4,8 +4,9 @@
 #include <stdlib.h>
 #include <ctype.h>
 
-#include "Game.h"
 #include "Point.h"
+#include "Game.h"
+
 #include "Engine.h"
 
 

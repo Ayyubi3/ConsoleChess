@@ -1,5 +1,7 @@
 #include "Point.h"
 
+struct Game;//promising that ill define Game later
+
 //Point
 Point POINT(int x, int y)
 {
@@ -26,7 +28,7 @@ int POINT_getIndex(Point p)
 	return (p.x - 1) + (p.y - 1) * 8;
 }
 
-int POINT_isPointInArray(Game* sys, Point p, int length, Point* arr)
+int POINT_isPointInArray(struct Game* sys, Point p, int length, Point* arr)
 {
 	for (int i = 0; i < length; i++)
 	{

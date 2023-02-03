@@ -7,13 +7,13 @@ typedef struct
 
 	char Board[64];
 
-	struct Point Cursor;
+	Point Cursor;
 
-	struct Point Scope;
+	Point Scope;
 
 	int isWhiteTurn;
 
-	struct Point markedPos[64];
+	Point markedPos[64];
 
 	int MarkedCellsCounter;
 
