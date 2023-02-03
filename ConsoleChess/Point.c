@@ -1,7 +1,4 @@
 #include "Point.h"
-#include "Game.h"
-
-
 
 //Point
 Point POINT(int x, int y)

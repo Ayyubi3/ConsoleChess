@@ -1,9 +1,8 @@
 #pragma once
-#include "Game.h"
 
-struct Point { int x; int y; } ;
+typedef struct Game Game;
 
-typedef struct Point Point;
+typedef struct { int x; int y; } Point;
 
 Point POINT(int x, int y);
 Point POINT_Add(Point point1, Point point2);

@@ -2,19 +2,18 @@
 
 #include "Point.h"
 
-
 typedef struct
 {
 
 	char Board[64];
 
-	Point Cursor;
+	struct Point Cursor;
 
-	Point Scope;
+	struct Point Scope;
 
 	int isWhiteTurn;
 
-	Point markedPos[64];
+	struct Point markedPos[64];
 
 	int MarkedCellsCounter;
 

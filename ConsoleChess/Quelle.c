@@ -4,10 +4,10 @@
 #include <stdlib.h>
 #include <ctype.h>
 
-#include "Point.h"
-#include "Engine.h"
-
 #include "Game.h"
+#include "Engine.h"
+#include "Point.h"
+
 
 // Dont know what this is, but prevents warnings to stop compilation
 #define _CRT_SECURE_NO_WARNINGS
