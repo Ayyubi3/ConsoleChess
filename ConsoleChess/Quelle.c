@@ -4,31 +4,15 @@
 #include <stdlib.h>
 #include <ctype.h>
 
+#include "Point.h"
+#include "Engine.h"
+
+#include "Game.h"
+
 // Dont know what this is, but prevents warnings to stop compilation
 #define _CRT_SECURE_NO_WARNINGS
 #pragma warning(disable : 4996)
 
-
-typedef struct { int x; int y; } Point;
-
-typedef struct
-{
-
-	char Board[64]; 
-
-	Point Cursor;
-
-	Point Scope;
-
-	int isWhiteTurn;
-
-	Point markedPos[64];
-
-	int MarkedCellsCounter;
-
-	int markedPosCol[64];
-
-} Game;
 
 void PIECE_getAllMovesAbsolute(char* Board, Point* BufferSize50, Point piece, int antiRecursion, int isWhiteTurn);
 void PIECE_getAllMovesRelative(char piece, Point* buffer);
@@ -44,23 +28,8 @@ void CELL_PrintPreview(Game* sys);
 void CELL_ClearPreview(Game* sys);
 void CELL_AddToPreview(Point coords, Game* sys, int color);
 
-void ENGINE_SetBackgroundColor(int R, int G, int B);
-void ENGINE_SetForegroundColor(int R, int G, int B);
-void ENGINE_SetCursorPos(Point coords);
 
-Point POINT(int x, int y);
-Point POINT_Add(Point point1, Point point2);
-int POINT_isZero(Point point);
-int POINT_equals(Point point1, Point point2);
-int POINT_getIndex(Point p); 
-int POINT_isPointInArray(Game* sys, Point p, int length, Point* arr);
-
-void ENGINE_SetBackgroundColor(int R, int G, int B);
-void ENGINE_SetForegroundColor(int R, int G, int B);
-void ENGINE_SetCursorPos(Point coords);
-
-int testBoard(char* Board);
-
+int testBoard(char* Board, int wTurn, int depth);
 
 int main()
 {
@@ -190,59 +159,8 @@ int main()
 }
 
 
-//Engine
-void ENGINE_SetBackgroundColor(int R, int G, int B)
-{
-	printf("\x1b[48;2;%i;%i;%im", R, G, B);
-}
 
-void ENGINE_SetForegroundColor(int R, int G, int B)
-{
-	printf("\x1b[38;2;%i;%i;%im", R, G, B);
-}
 
-void ENGINE_SetCursorPos(Point coords)
-{
-	printf("\033[%d;%dH", coords.y, coords.x);
-}
-
-//Point
-Point POINT(int x, int y)
-{
-	return (Point){x, y};
-}
-
-Point POINT_Add(Point point1, Point point2)
-{
-	return (Point){point1.x + point2.x, point1.y + point2.y};
-}
-
-int POINT_isZero(Point point)
-{
-	return (point.x == 0 && point.y == 0);
-}
-
-int POINT_equals(Point point1, Point point2)
-{
-	return (point1.x == point2.x) && (point1.y == point2.y);
-}
-
-int POINT_getIndex(Point p)
-{
-	return (p.x - 1) + (p.y - 1) * 8;
-}
-
-int POINT_isPointInArray(Game *sys, Point p, int length, Point *arr)
-{
-	for (size_t i = 0; i < length; i++)
-	{
-		if (POINT_equals(p, arr[i]))
-		{
-			return 1;
-		}
-	}
-	return 0;
-}
 
 
 //Cell
