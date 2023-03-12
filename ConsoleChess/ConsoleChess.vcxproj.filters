@@ -15,24 +15,24 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Quelle.c">
+    <ClCompile Include="src\Quelle.c">
       <Filter>Quelldateien</Filter>
     </ClCompile>
-    <ClCompile Include="Engine.c">
+    <ClCompile Include="src\Engine.c">
       <Filter>Quelldateien</Filter>
     </ClCompile>
-    <ClCompile Include="Point.c">
+    <ClCompile Include="src\Point.c">
       <Filter>Quelldateien</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Engine.h">
+    <ClInclude Include="src\Engine.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
-    <ClInclude Include="Point.h">
+    <ClInclude Include="src\Point.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
-    <ClInclude Include="Game.h">
+    <ClInclude Include="src\Game.h">
       <Filter>Headerdateien</Filter>
     </ClInclude>
   </ItemGroup>
